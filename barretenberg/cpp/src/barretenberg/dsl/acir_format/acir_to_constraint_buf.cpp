@@ -862,7 +862,7 @@ void handle_memory_op(Acir::Opcode::MemoryOp const& mem_op, AcirFormat& af, Bloc
 
     // Update the ranges of the index using the array length
     poly_triple index = serialize_arithmetic_gate(mem_op.op.index);
-    int bit_range = std::bit_width(block.init.size());
+    int bit_range = static_cast<int>(std::bit_width(block.init.size()));
     uint32_t index_witness = poly_to_witness(index);
     if (index_witness != 0 && bit_range > 0) {
         unsigned int u_bit_range = static_cast<unsigned int>(bit_range);
