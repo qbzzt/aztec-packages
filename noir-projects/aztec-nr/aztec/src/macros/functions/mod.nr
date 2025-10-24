@@ -6,6 +6,7 @@ pub(crate) mod stub_registry;
 pub(crate) mod self_call_registry;
 pub(crate) mod auth_registry;
 pub(crate) mod utils;
+pub mod internal;
 
 use crate::macros::{
     internals_functions_generation::external_functions_registry,
@@ -157,6 +158,18 @@ pub comptime fn external(f: FunctionDefinition, f_type: CtString) {
             f"Function '{function_name}' is marked as #[external(\"{f_type}\")], but '{f_type}' is not a valid external function type. External functions must be one of 'private', 'public' or 'utility'",
         );
     }
+}
+
+/// Same as in Solidity internal functions are functions that are callable from inside the contract. Unlike #[only_self]
+/// functions, internal functions are inlined (e.g. akin to EVM's JUMP and not EVM's CALL).
+pub comptime fn internal(f: FunctionDefinition) -> Quoted {
+    if is_fn_external(f) {
+        let f_name = f.name();
+        panic(
+            f"The #[internal] attribute cannot be applied to external functions - {f_name} is marked as both #[external(\"...\")] and #[internal]",
+        );
+    }
+    transform_internal(f)
 }
 
 comptime fn assert_valid_private(f: FunctionDefinition) {
