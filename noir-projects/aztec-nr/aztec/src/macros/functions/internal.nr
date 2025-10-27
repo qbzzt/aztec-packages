@@ -34,8 +34,8 @@ pub(crate) comptime fn transform_public_internal(f: FunctionDefinition) {
 
     let original_params = f.parameters();
     f.set_parameters(&[(
-        quote { &mut self },
-        quote { crate::contract_self::ContractSelf<&mut crate::context::public_context::PublicContext, $storage_type> }
+        quote { self },
+        quote { crate::contract_self::ContractSelf<crate::context::public_context::PublicContext, $storage_type> }
             .as_type(),
     )]
         .append(original_params));
