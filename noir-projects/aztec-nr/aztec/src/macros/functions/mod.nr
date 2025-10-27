@@ -162,14 +162,37 @@ pub comptime fn external(f: FunctionDefinition, f_type: CtString) {
 
 /// Same as in Solidity internal functions are functions that are callable from inside the contract. Unlike #[only_self]
 /// functions, internal functions are inlined (e.g. akin to EVM's JUMP and not EVM's CALL).
-pub comptime fn internal(f: FunctionDefinition) -> Quoted {
+pub comptime fn internal(f: FunctionDefinition, f_type: CtString) {
+    let function_name = f.name();
     if is_fn_external(f) {
-        let f_name = f.name();
         panic(
-            f"The #[internal] attribute cannot be applied to external functions - {f_name} is marked as both #[external(\"...\")] and #[internal]",
+            f"The #[internal] attribute cannot be applied to external functions - {function_name} is marked as both #[external(\"{f_type}\")] and #[internal]",
         );
     }
-    transform_internal(f)
+
+    let visibility = f.visibility();
+    if visibility != quote {} {
+        panic(
+            f"A function marked as #[internal(\"...\")] must not have public Noir visibility - {function_name}'s visibility is '{visibility}'",
+        );
+    }
+
+    if f.is_unconstrained() {
+        panic(
+            f"#[internal(\"...\")] functions must not be unconstrained - {function_name} is",
+        );
+    }
+
+    if f_type.eq("private") {
+        transform_private_internal(f);
+    } else if f_type.eq("public") {
+        transform_public_internal(f);
+    } else {
+        let function_name = f.name();
+        panic(
+            f"Function '{function_name}' is marked as #[internal(\"{f_type}\")], but '{f_type}' is not a valid internal function type. Internal functions must be one of 'private', 'public'",
+        );
+    }
 }
 
 comptime fn assert_valid_private(f: FunctionDefinition) {

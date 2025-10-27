@@ -528,9 +528,12 @@ pub(crate) comptime fn create_authorize_once_check(
 pub(crate) comptime fn check_each_fn_macroified(m: Module) {
     for f in m.functions() {
         let name = f.name();
-        if !is_fn_external(f) & !is_fn_contract_library_method(f) & !is_fn_test(f) {
+        if !is_fn_external(f)
+            & !is_fn_contract_library_method(f)
+            & !is_fn_internal(f)
+            & !is_fn_test(f) {
             panic(
-                f"Function {name} must be marked as either #[external(...)], #[contract_library_method], or #[test]",
+                f"Function {name} must be marked as either #[external(...)], #[contract_library_method], #[internal(...)], or #[test]",
             );
         }
     }

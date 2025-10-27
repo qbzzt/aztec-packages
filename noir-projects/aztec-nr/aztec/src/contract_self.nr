@@ -186,6 +186,15 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic> Contract
     {
         emit_event_in_private(event, self.context, recipient, delivery_mode);
     }
+
+    /// Calls an internal private function from within the contract.
+    ///
+    /// Internal functions are inlined (similar to EVM's JUMP rather than CALL) and have direct access
+    /// to the contract's context and storage through their `&mut self` parameter. This is in contrast
+    /// to `#[only_self]` functions which perform a full call with separate execution contexts.
+    pub fn call_internal<Ret>(&mut self, internal_function: fn(&mut Self) -> Ret) -> Ret {
+        internal_function(self)
+    }
 }
 
 /// Implementation for `ContractSelf` in public execution contexts.
@@ -262,6 +271,15 @@ impl<Storage, CallSelf, CallSelfStatic> ContractSelf<PublicContext, Storage, Cal
         Event: EventInterface + Serialize,
     {
         emit_event_in_public(event, self.context);
+    }
+
+    /// Calls an internal public function from within the contract.
+    ///
+    /// Internal functions are inlined (similar to EVM's JUMP rather than CALL) and have direct access
+    /// to the contract's context and storage through their `&mut self` parameter. This is in contrast
+    /// to `#[only_self]` functions which perform a full call with separate execution contexts.
+    pub fn call_internal<Ret>(&mut self, internal_function: fn(&mut Self) -> Ret) -> Ret {
+        internal_function(self)
     }
 }
 
