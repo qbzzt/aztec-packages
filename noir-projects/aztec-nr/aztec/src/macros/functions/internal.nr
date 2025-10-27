@@ -1,22 +1,21 @@
 use crate::macros::utils::module_has_storage;
 
-/// Returns the storage type for internal functions based on whether the module has storage defined.
-/// If the module has storage, returns `Storage`, otherwise returns `()`.
-comptime fn get_storage_type_for_internal(f: FunctionDefinition) -> Quoted {
-    let module_has_storage = module_has_storage(f.module());
-
-    if module_has_storage {
-        quote { Storage }
-    } else {
-        quote { () }
+/// Returns the contract's module storage type, or unit type `()` if no storage is found.
+comptime fn get_storage_type_in_module(m: Module) -> Type {
+    let mut result = Option::none();
+    for s in m.structs() {
+        if s.has_named_attribute("storage") | s.has_named_attribute("storage_no_init") {
+            result = Option::some(s.as_type());
+        }
     }
+    result.unwrap_or(quote { () }.as_type())
 }
 
 /// Injects `self: ContractSelf<&mut PrivateContext, Storage>` (or `()` instead of `Storage` if the contract doesn't
 /// have Storage defined) as the first argument of the `#[internal("private")]` function we are transforming. `Storage`
 /// here refers to the storage struct defined in the contract.
 pub(crate) comptime fn transform_private_internal(f: FunctionDefinition) {
-    let storage_type = get_storage_type_for_internal(f);
+    let storage_type = get_storage_type_in_module(f.module());
 
     let original_params = f.parameters();
     f.set_parameters(&[(
@@ -31,7 +30,7 @@ pub(crate) comptime fn transform_private_internal(f: FunctionDefinition) {
 /// have Storage defined) as the first argument of the `#[internal("public")]` function we are transforming. `Storage`
 /// here refers to the storage struct defined in the contract.
 pub(crate) comptime fn transform_public_internal(f: FunctionDefinition) {
-    let storage_type = get_storage_type_for_internal(f);
+    let storage_type = get_storage_type_in_module(f.module());
 
     let original_params = f.parameters();
     f.set_parameters(&[(
