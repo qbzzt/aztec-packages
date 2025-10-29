@@ -32,10 +32,13 @@ pub(crate) comptime fn transform_private_internal(f: FunctionDefinition) {
 pub(crate) comptime fn transform_public_internal(f: FunctionDefinition) {
     let storage_type = get_storage_type_in_module(f.module());
 
+    let context_type = quote { crate::context::public_context::PublicContext }.as_type();
+    let storage_type_with_context = quote { $storage_type<$context_type> }.as_type();
+
     let original_params = f.parameters();
     f.set_parameters(&[(
         quote { self },
-        quote { crate::contract_self::ContractSelf<crate::context::public_context::PublicContext, $storage_type> }
+        quote { crate::contract_self::ContractSelf<$context_type, $storage_type_with_context> }
             .as_type(),
     )]
         .append(original_params));
