@@ -169,22 +169,11 @@ pub comptime fn internal(f: FunctionDefinition, f_type: CtString) {
         );
     }
 
-    let visibility = f.visibility();
-    if visibility != quote {} {
-        panic(
-            f"A function marked as #[internal(\"...\")] must not have public Noir visibility - {function_name}'s visibility is '{visibility}'",
-        );
-    }
-
-    if f.is_unconstrained() {
-        panic(
-            f"#[internal(\"...\")] functions must not be unconstrained - {function_name} is",
-        );
-    }
-
     if f_type.eq("private") {
+        assert_valid_private(f);
         internal_functions_registry::add_private(f);
     } else if f_type.eq("public") {
+        assert_valid_public(f);
         internal_functions_registry::add_public(f);
     } else {
         let function_name = f.name();
@@ -199,14 +188,14 @@ comptime fn assert_valid_private(f: FunctionDefinition) {
     if visibility != quote {} {
         let name = f.name();
         panic(
-            f"A function marked as #[external(\"private\")] must not have public Noir visibility - {name}'s visibility is '{visibility}'",
+            f"A function marked as #[external(\"private\")] or #[internal(\"private\")] must not have public Noir visibility - {name}'s visibility is '{visibility}'",
         );
     }
 
     if f.is_unconstrained() {
         let name = f.name();
         panic(
-            f"#[external(\"private\")] functions must not be unconstrained - {name} is",
+            f"#[external(\"private\")] or #[internal(\"private\")] functions must not be unconstrained - {name} is",
         );
     }
 }
@@ -216,14 +205,14 @@ comptime fn assert_valid_public(f: FunctionDefinition) {
     if visibility != quote {} {
         let name = f.name();
         panic(
-            f"A function marked as #[external(\"public\")] must not have public Noir visibility - {name}'s visibility is '{visibility}'",
+            f"A function marked as #[external(\"public\")] or #[internal(\"public\")] must not have public Noir visibility - {name}'s visibility is '{visibility}'",
         );
     }
 
     if f.is_unconstrained() {
         let name = f.name();
         panic(
-            f"#[external(\"public\")] functions must not be unconstrained - {name} is",
+            f"#[external(\"public\")] or #[internal(\"public\")] functions must not be unconstrained - {name} is",
         );
     }
 }

@@ -82,8 +82,10 @@ pub(crate) comptime fn generate_public_internal(f: FunctionDefinition) -> Quoted
 
     let body = f.body();
 
-    // Internal functions are regular functions, not entry points
-    // We mark them with #[contract_library_method] to prevent them from being compiled as entry points
+    // Internal public functions are marked as unconstrained because they are inlined within external public functions,
+    // which are also compiled as unconstrained and later transpiled to AVM bytecode. Since these internal functions are
+    // intended to be inlined, we mark them with #[contract_library_method] to prevent them from being compiled as entry
+    // points.
     quote {
         #[contract_library_method]
         unconstrained fn $fn_name($params) -> $return_type {

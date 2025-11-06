@@ -1,3 +1,8 @@
+//! Generates `CallInternal` struct and methods for invoking internal contract functions.
+//!
+//! Creates wrapper methods that forward calls to the underlying internal function implementations, handling both
+//! `#[internal("private")]` and `#[internal("public")]` functions.
+
 use crate::macros::internals_functions_generation::internal_functions_registry;
 
 comptime fn generate_private_internal_function_call(f: FunctionDefinition) -> Quoted {
@@ -33,9 +38,6 @@ comptime fn generate_public_internal_function_call(f: FunctionDefinition) -> Quo
 
     let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
 
-    // All public functions (both internal and external) are automatically made unconstrained, even if they were not
-    // marked as such. This is because instead of compiling into a circuit, they will compile to bytecode that will be
-    // later transpiled into AVM bytecode.
     quote {
         pub unconstrained fn $original_function_name(self, $original_params) -> $original_return_type {
             $fn_name(self.context, $params_at_callsite)
