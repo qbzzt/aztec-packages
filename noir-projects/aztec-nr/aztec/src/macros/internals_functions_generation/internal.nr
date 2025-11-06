@@ -8,7 +8,6 @@ pub(crate) comptime fn generate_private_internal(f: FunctionDefinition) -> Quote
     let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
     let return_type = f.return_type();
 
-    // Build the parameters: self comes first, then original params
     let original_params = f
         .parameters()
         .map(|(param_name, param_type)| quote { $param_name: $param_type })
@@ -31,8 +30,8 @@ pub(crate) comptime fn generate_private_internal(f: FunctionDefinition) -> Quote
 
     let body = f.body();
 
-    // Internal functions are regular functions, not entry points
-    // We mark them with #[contract_library_method] to prevent them from being compiled as entry points
+    // Internal functions are inlined within external functions. For this reason we mark them with
+    // #[contract_library_method] to prevent them from being compiled as entry points.
     quote {
         #[contract_library_method]
         fn $fn_name($params) -> $return_type {
@@ -61,7 +60,6 @@ pub(crate) comptime fn generate_public_internal(f: FunctionDefinition) -> Quoted
     let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
     let return_type = f.return_type();
 
-    // Build the parameters: self comes first, then original params
     let original_params = f
         .parameters()
         .map(|(param_name, param_type)| quote { $param_name: $param_type })
