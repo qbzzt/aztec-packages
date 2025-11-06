@@ -1,1 +1,1 @@
-mod internal_functions;
+pub(crate) mod internal_functions;

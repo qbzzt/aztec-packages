@@ -1,4 +1,5 @@
 use crate::macros::{
+    calls_generation::internal_functions::generate_internal_functions_calls,
     dispatch::generate_public_dispatch,
     functions::{self_call_registry, stub_registry, utils::check_each_fn_macroified},
     internals_functions_generation::{create_fn_abi_exports, process_functions},
