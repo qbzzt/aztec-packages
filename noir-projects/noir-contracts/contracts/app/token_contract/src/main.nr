@@ -424,9 +424,9 @@ pub contract Token {
         self.internal._finalize_transfer_to_private(from_and_completer, amount, partial_note);
     }
 
-    /// In all the flows in this contract, `from` (the account from which we're subtracting the `amount`) and
-    /// `completer` (the entity that can complete the partial note) are the same so we represent them with a single
-    /// argument.
+    // In all the flows in this contract, `from` (the account from which we're subtracting the `amount`) and
+    // `completer` (the entity that can complete the partial note) are the same so we represent them with a single
+    // argument.
     #[internal("public")]
     fn _finalize_transfer_to_private(
         from_and_completer: AztecAddress,
@@ -434,8 +434,10 @@ pub contract Token {
         partial_note: PartialUintNote,
     ) {
         // First we subtract the `amount` from the public balance of `from_and_completer`
-        let from_balance = self.storage.public_balances.at(from_and_completer).read().sub(amount);
-        self.storage.public_balances.at(from_and_completer).write(from_balance);
+        let balance_storage = self.storage.public_balances.at(from_and_completer);
+
+        let from_balance = balance_storage.read().sub(amount);
+        balance_storage.write(from_balance);
 
         // We finalize the transfer by completing the partial note.
         partial_note.complete(self.context, from_and_completer, amount);

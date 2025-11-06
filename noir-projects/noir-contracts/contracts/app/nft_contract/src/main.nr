@@ -167,7 +167,6 @@ pub contract NFT {
         self.internal._prepare_private_balance_increase(to)
     }
 
-    /// Internal helper that prepares an increase of private balance of `to` (partial note).
     #[internal("private")]
     fn _prepare_private_balance_increase(to: AztecAddress) -> PartialNFTNote {
         // We setup a partial note with unpopulated/zero token id for 'to'.
@@ -195,16 +194,12 @@ pub contract NFT {
         // Completer is the entity that can complete the partial note. In this case, it's the same as the account
         // `from` from whose account the token is being transferred.
         let from_and_completer = self.msg_sender().unwrap();
-        self.internal.finalize_transfer_to_private_helper(
-            from_and_completer,
-            token_id,
-            partial_note,
-        );
+        self.internal._finalize_transfer_to_private(from_and_completer, token_id, partial_note);
     }
 
-    /// This is a wrapper around `finalize_transfer_to_private_helper` placed here so that a call
-    /// to `finalize_transfer_to_private_helper` can be enqueued. Called unsafe as it does not check `from_and_completer`
-    /// (this has to be done in the calling function).
+    /// This is a wrapper around `_finalize_transfer_to_private` placed here so that a call to
+    /// `_finalize_transfer_to_private` can be enqueued. Called unsafe as it does not check `from_and_completer` (this
+    /// has to be done in the calling function).
     #[external("public")]
     #[only_self]
     fn _finalize_transfer_to_private_unsafe(
@@ -212,18 +207,13 @@ pub contract NFT {
         token_id: Field,
         partial_note: PartialNFTNote,
     ) {
-        self.internal.finalize_transfer_to_private_helper(
-            from_and_completer,
-            token_id,
-            partial_note,
-        );
+        self.internal._finalize_transfer_to_private(from_and_completer, token_id, partial_note);
     }
 
-    /// Internal helper that finalizes a transfer to private.
     /// In all the flows in this contract, `from` (the account from which we're transferring the NFT) and `completer`
     /// (the entity that can complete the partial note) are the same so we represent them with a single argument.
     #[internal("public")]
-    fn finalize_transfer_to_private_helper(
+    fn _finalize_transfer_to_private(
         from_and_completer: AztecAddress,
         token_id: Field,
         partial_note: PartialNFTNote,

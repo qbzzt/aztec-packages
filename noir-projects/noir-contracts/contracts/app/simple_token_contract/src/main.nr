@@ -199,15 +199,16 @@ pub contract SimpleToken {
         self.internal._finalize_transfer_to_private(from_and_completer, amount, partial_note);
     }
 
-    /// Internal helper that finalizes a transfer to private.
     #[internal("public")]
     fn _finalize_transfer_to_private(
         from_and_completer: AztecAddress,
         amount: u128,
         partial_note: PartialUintNote,
     ) {
-        let from_balance = self.storage.public_balances.at(from_and_completer).read().sub(amount);
-        self.storage.public_balances.at(from_and_completer).write(from_balance);
+        let balance_storage = self.storage.public_balances.at(from_and_completer);
+
+        let from_balance = balance_storage.read().sub(amount);
+        balance_storage.write(from_balance);
 
         partial_note.complete(self.context, from_and_completer, amount);
     }
@@ -257,8 +258,10 @@ pub contract SimpleToken {
 
     #[internal("public")]
     fn _increase_public_balance_inner(to: AztecAddress, amount: u128) {
-        let new_balance = self.storage.public_balances.at(to).read().add(amount);
-        self.storage.public_balances.at(to).write(new_balance);
+        let balance_storage = self.storage.public_balances.at(to);
+
+        let new_balance = balance_storage.read().add(amount);
+        balance_storage.write(new_balance);
     }
 
     #[external("public")]
