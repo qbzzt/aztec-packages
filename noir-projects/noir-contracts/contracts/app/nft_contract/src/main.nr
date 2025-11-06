@@ -197,9 +197,9 @@ pub contract NFT {
         self.internal._finalize_transfer_to_private(from_and_completer, token_id, partial_note);
     }
 
-    /// This is a wrapper around `_finalize_transfer_to_private` placed here so that a call to
-    /// `_finalize_transfer_to_private` can be enqueued. Called unsafe as it does not check `from_and_completer` (this
-    /// has to be done in the calling function).
+    /// This is a wrapper around `_finalize_transfer_to_private` placed here so that a call
+    /// to `_finalize_transfer_to_private` can be enqueued. Called unsafe as it does not check `from_and_completer`
+    /// (this has to be done in the calling function).
     #[external("public")]
     #[only_self]
     fn _finalize_transfer_to_private_unsafe(
@@ -210,8 +210,8 @@ pub contract NFT {
         self.internal._finalize_transfer_to_private(from_and_completer, token_id, partial_note);
     }
 
-    /// In all the flows in this contract, `from` (the account from which we're transferring the NFT) and `completer`
-    /// (the entity that can complete the partial note) are the same so we represent them with a single argument.
+    // In all the flows in this contract, `from` (the account from which we're transferring the NFT) and `completer`
+    // (the entity that can complete the partial note) are the same so we represent them with a single argument.
     #[internal("public")]
     fn _finalize_transfer_to_private(
         from_and_completer: AztecAddress,
