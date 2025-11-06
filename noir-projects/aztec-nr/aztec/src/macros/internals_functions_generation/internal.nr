@@ -1,7 +1,8 @@
 use crate::macros::utils::module_has_storage;
 
-/// Transforms a private internal function to accept ContractSelf as first parameter and returns
-/// the complete function definition as a quote. Internal functions are NOT entry points.
+/// Generates a private internal function based on the function that was originally marked with #[internal("private")].
+/// For more details on why we do this instead of just transforming the original function, see the documentation of this
+/// module.
 pub(crate) comptime fn generate_private_internal(f: FunctionDefinition) -> Quoted {
     let original_function_name = f.name();
     let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
@@ -52,8 +53,9 @@ pub(crate) comptime fn generate_private_internal(f: FunctionDefinition) -> Quote
     }
 }
 
-/// Transforms a public internal function to accept ContractSelf as first parameter and returns
-/// the complete function definition as a quote. Internal functions are NOT entry points.
+/// Generates a public internal function based on the function that was originally marked with #[internal("public")].
+/// For more details on why we do this instead of just transforming the original function, see the documentation of this
+/// module.
 pub(crate) comptime fn generate_public_internal(f: FunctionDefinition) -> Quoted {
     let original_function_name = f.name();
     let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();

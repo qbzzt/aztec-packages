@@ -1,7 +1,7 @@
 //! The functionality in this module is triggered by the `#[aztec]` macro. It generates new functions, prefixed with
-//! `__aztec_nr_internals___`, from the ones marked with `#[external(...)]` attributes. The original functions are then
-//! modified to be uncallable. This prevents developers from inadvertently calling a function directly, instead of
-//! performing a proper contract call.
+//! `__aztec_nr_internals___`, from the ones marked with `#[external(...)]` and `#[internal(...)]` attributes. The
+//! original functions are then modified to be uncallable. This prevents developers from inadvertently calling a
+//! function directly, instead of performing a proper contract call.
 
 pub mod abi_attributes;
 pub(crate) mod external_functions_registry;
