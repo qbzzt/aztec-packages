@@ -161,6 +161,14 @@ pub comptime fn external(f: FunctionDefinition, f_type: CtString) {
 
 /// Same as in Solidity internal functions are functions that are callable from inside the contract. Unlike #[only_self]
 /// functions, internal functions are inlined (e.g. akin to EVM's JUMP and not EVM's CALL).
+///
+/// Internal function can be called using the following API:
+/// ```noir
+/// self.internal.my_internal_function(...)
+/// ```
+///
+/// Private internal functions can only be called from other private external or internal functions.
+/// Public internal functions can only be called from other public external or internal functions.
 pub comptime fn internal(f: FunctionDefinition, f_type: CtString) {
     let function_name = f.name();
     if is_fn_external(f) {

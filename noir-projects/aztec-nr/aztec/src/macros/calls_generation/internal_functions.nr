@@ -1,7 +1,9 @@
-//! Generates `CallInternal` struct and methods for invoking internal contract functions.
-//!
-//! Creates wrapper methods that forward calls to the underlying internal function implementations, handling both
-//! `#[internal("private")]` and `#[internal("public")]` functions.
+//! Generates functionality such that the following API for performing calls to `#[internal("...")]` functions is
+//! available:
+//! ```noir
+//! self.internal.my_internal_function(...)
+//! ```
+//! Injected into the contract by the `#[aztec]` macro.
 
 use crate::macros::internals_functions_generation::internal_functions_registry;
 
