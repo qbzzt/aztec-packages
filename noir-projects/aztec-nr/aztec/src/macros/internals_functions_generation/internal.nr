@@ -86,7 +86,7 @@ pub(crate) comptime fn generate_public_internal(f: FunctionDefinition) -> Quoted
     // We mark them with #[contract_library_method] to prevent them from being compiled as entry points
     quote {
         #[contract_library_method]
-        unconstrained fn $fn_name($params) -> pub $return_type {
+        unconstrained fn $fn_name($params) -> $return_type {
             #[allow(unused_variables)]
             let mut self = {
                 $storage_init

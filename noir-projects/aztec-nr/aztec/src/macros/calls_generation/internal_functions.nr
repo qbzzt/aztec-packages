@@ -33,8 +33,11 @@ comptime fn generate_public_internal_function_call(f: FunctionDefinition) -> Quo
 
     let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
 
+    // All public functions (both internal and external) are automatically made unconstrained, even if they were not
+    // marked as such. This is because instead of compiling into a circuit, they will compile to bytecode that will be
+    // later transpiled into AVM bytecode.
     quote {
-        pub fn $original_function_name(self, $original_params) -> $original_return_type {
+        pub unconstrained fn $original_function_name(self, $original_params) -> $original_return_type {
             $fn_name(self.context, $params_at_callsite)
         }
     }

@@ -10,7 +10,6 @@ mod abi_export;
 mod internal;
 
 use crate::macros::functions::utils::{transform_private, transform_public, transform_utility};
-use crate::macros::utils::module_has_storage;
 use abi_export::create_fn_abi_export;
 use external_functions_registry::{
     get_private_functions, get_public_functions, get_utility_functions,
