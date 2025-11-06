@@ -176,7 +176,7 @@ pub contract NFT {
             self.storage.private_nfts.at(to).storage_slot,
             self.context,
             to,
-            self.context.msg_sender().unwrap(),
+            self.msg_sender().unwrap(),
         );
 
         partial_note
