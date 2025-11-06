@@ -11,16 +11,26 @@ comptime fn get_storage_type_in_module(m: Module) -> Type {
     result.unwrap_or(quote { () }.as_type())
 }
 
-/// Injects `self: ContractSelf<&mut PrivateContext, Storage>` (or `()` instead of `Storage` if the contract doesn't
-/// have Storage defined) as the first argument of the `#[internal("private")]` function we are transforming. `Storage`
-/// here refers to the storage struct defined in the contract.
+/// Injects `self: ContractSelf<&mut PrivateContext, Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic>`
+/// (or uses `()` instead of `Storage` if the contract doesn't have Storage defined) as the first argument of the
+/// `#[internal("private")]` function we are transforming. `Storage` here refers to the storage struct defined in the contract.
 pub(crate) comptime fn transform_private_internal(f: FunctionDefinition) {
     let storage_type = get_storage_type_in_module(f.module());
 
     let original_params = f.parameters();
+
     f.set_parameters(&[(
         quote { &mut self },
-        quote { crate::contract_self::ContractSelf<&mut crate::context::private_context::PrivateContext, $storage_type> }
+        quote {
+            crate::contract_self::ContractSelf<
+                &mut crate::context::private_context::PrivateContext,
+                $storage_type,
+                CallSelf<&mut crate::context::private_context::PrivateContext>,
+                EnqueueSelf<&mut crate::context::private_context::PrivateContext>,
+                CallSelfStatic<&mut crate::context::private_context::PrivateContext>,
+                EnqueueSelfStatic<&mut crate::context::private_context::PrivateContext>
+            >
+        }
             .as_type(),
     )]
         .append(original_params));
