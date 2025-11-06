@@ -10,8 +10,8 @@ use crate::macros::{
     notes::NOTES,
     utils::{
         fn_has_authorize_once, fn_has_noinitcheck, is_fn_contract_library_method, is_fn_external,
-        is_fn_initializer, is_fn_only_self, is_fn_test, is_fn_view, module_has_initializer,
-        module_has_storage,
+        is_fn_initializer, is_fn_internal, is_fn_only_self, is_fn_test, is_fn_view,
+        module_has_initializer, module_has_storage,
     },
 };
 use dep::protocol_types::meta::utils::derive_serialization_quotes;

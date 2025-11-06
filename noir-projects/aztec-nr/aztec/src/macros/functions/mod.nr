@@ -6,10 +6,9 @@ pub(crate) mod stub_registry;
 pub(crate) mod self_call_registry;
 pub(crate) mod auth_registry;
 pub(crate) mod utils;
-pub mod internal;
 
 use crate::macros::{
-    internals_functions_generation::external_functions_registry,
+    internals_functions_generation::{external_functions_registry, internal_functions_registry},
     utils::{is_fn_external, module_has_initializer},
 };
 use super::utils::{fn_has_noinitcheck, is_fn_initializer, is_fn_only_self, is_fn_view};
@@ -184,9 +183,9 @@ pub comptime fn internal(f: FunctionDefinition, f_type: CtString) {
     }
 
     if f_type.eq("private") {
-        transform_private_internal(f);
+        internal_functions_registry::add_private(f);
     } else if f_type.eq("public") {
-        transform_public_internal(f);
+        internal_functions_registry::add_public(f);
     } else {
         let function_name = f.name();
         panic(

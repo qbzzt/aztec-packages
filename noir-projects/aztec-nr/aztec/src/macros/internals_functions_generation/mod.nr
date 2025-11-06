@@ -5,13 +5,17 @@
 
 pub mod abi_attributes;
 pub(crate) mod external_functions_registry;
+pub(crate) mod internal_functions_registry;
 mod abi_export;
+mod internal;
 
 use crate::macros::functions::utils::{transform_private, transform_public, transform_utility};
+use crate::macros::utils::module_has_storage;
 use abi_export::create_fn_abi_export;
 use external_functions_registry::{
     get_private_functions, get_public_functions, get_utility_functions,
 };
+use internal::{generate_private_internal, generate_public_internal};
 
 /// Modifies a function such that when it's called directly, it will result in a compilation error with a reasonable
 /// error message.
@@ -50,7 +54,8 @@ comptime fn make_functions_uncallable<let N: u32>(
 }
 
 /// Produces new functions for all external contract functions, prefixing them with `__aztec_nr_internals___`, and then
-/// renders the original functions uncallable.
+/// renders the original functions uncallable. Also transforms internal functions by injecting the appropriate
+/// ContractSelf parameter.
 pub(crate) comptime fn process_functions(m: Module) -> Quoted {
     let private_functions = get_private_functions(m);
     let public_functions = get_public_functions(m);
@@ -79,11 +84,33 @@ pub(crate) comptime fn process_functions(m: Module) -> Quoted {
         "Calling utility functions directly from within the contract is not supported. You attempted to call ",
     );
 
+    // Process internal functions by transforming them (generating new versions with context and storage parameters)
+    let private_internal_functions = internal_functions_registry::get_private_functions(m);
+    let public_internal_functions = internal_functions_registry::get_public_functions(m);
+
+    let transformed_private_internal_functions = private_internal_functions
+        .map(|function| generate_private_internal(function))
+        .join(quote {});
+    let transformed_public_internal_functions =
+        public_internal_functions.map(|function| generate_public_internal(function)).join(quote {});
+
+    // Just like for external functions, we make the internal functions not directly callable.
+    make_functions_uncallable(
+        private_internal_functions,
+        "Direct invocation of private internal functions is not supported. You attempted to call ",
+    );
+    make_functions_uncallable(
+        public_internal_functions,
+        "Direct invocation of public internal functions is not supported. You attempted to call ",
+    );
+
     // We return the new functions' quotes to be injected into the contract.
     quote {
         $transformed_private_functions
         $transformed_public_functions
         $transformed_utility_functions
+        $transformed_private_internal_functions
+        $transformed_public_internal_functions
     }
 }
 
