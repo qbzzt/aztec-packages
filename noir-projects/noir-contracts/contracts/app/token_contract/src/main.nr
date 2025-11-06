@@ -558,23 +558,13 @@ pub contract Token {
         partial_note.complete(context, completer, amount);
     }
 
-    /// Internal ///
-    /// TODO(#9180): Consider adding macro support for functions callable both as an entrypoint and as an internal
-    /// function.
     #[external("public")]
     #[only_self]
     fn _increase_public_balance(to: AztecAddress, amount: u128) {
-        _increase_public_balance_inner(to, amount, self.storage);
-    }
+        let to_balance = self.storage.public_balances.at(to);
 
-    #[contract_library_method]
-    fn _increase_public_balance_inner(
-        to: AztecAddress,
-        amount: u128,
-        storage: Storage<PublicContext>,
-    ) {
-        let new_balance = storage.public_balances.at(to).read().add(amount);
-        storage.public_balances.at(to).write(new_balance);
+        let new_balance = to_balance.read().add(amount);
+        to_balance.write(new_balance);
     }
 
     #[external("public")]
