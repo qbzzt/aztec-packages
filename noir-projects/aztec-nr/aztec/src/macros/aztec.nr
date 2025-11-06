@@ -20,6 +20,7 @@ pub comptime fn aztec(m: Module) -> Quoted {
 
     let interface = generate_contract_interface(m);
     let self_call_structs = generate_self_call_structs(m);
+    let internal_functions_calls = generate_internal_functions_calls(m);
 
     // We generate ABI exports for all the external functions in the contract.
     let fn_abi_exports = create_fn_abi_exports(m);
@@ -54,6 +55,7 @@ pub comptime fn aztec(m: Module) -> Quoted {
     quote {
         $interface
         $self_call_structs
+        $internal_functions_calls
         $functions
         $fn_abi_exports
         $contract_library_method_compute_note_hash_and_nullifier
