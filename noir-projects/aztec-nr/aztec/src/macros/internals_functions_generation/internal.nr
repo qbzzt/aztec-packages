@@ -1,23 +1,10 @@
 use crate::macros::utils::module_has_storage;
 
-/// Returns the contract's module storage type, or unit type `()` if no storage is found.
-comptime fn get_storage_type_in_module(m: Module) -> Type {
-    let mut result = Option::none();
-    for s in m.structs() {
-        if s.has_named_attribute("storage") | s.has_named_attribute("storage_no_init") {
-            result = Option::some(s.as_type());
-        }
-    }
-    result.unwrap_or(quote { () }.as_type())
-}
-
 /// Transforms a private internal function to accept ContractSelf as first parameter and returns
 /// the complete function definition as a quote. Internal functions are NOT entry points.
 pub(crate) comptime fn generate_private_internal(f: FunctionDefinition) -> Quoted {
-    let module_has_storage = module_has_storage(f.module());
-    let storage_type = get_storage_type_in_module(f.module());
-
     let original_function_name = f.name();
+    let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
     let return_type = f.return_type();
 
     // Build the parameters: self comes first, then original params
@@ -31,8 +18,17 @@ pub(crate) comptime fn generate_private_internal(f: FunctionDefinition) -> Quote
         $original_params
     };
 
+    let storage_init = if module_has_storage(f.module()) {
+        quote {
+            let storage = Storage::init(&mut context);
+        }
+    } else {
+        quote {
+            let storage = ();
+        }
+    };
+
     let body = f.body();
-    let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
 
     // Internal functions are regular functions, not entry points
     // We mark them with #[contract_library_method] to prevent them from being compiled as entry points
@@ -59,10 +55,8 @@ pub(crate) comptime fn generate_private_internal(f: FunctionDefinition) -> Quote
 /// Transforms a public internal function to accept ContractSelf as first parameter and returns
 /// the complete function definition as a quote. Internal functions are NOT entry points.
 pub(crate) comptime fn generate_public_internal(f: FunctionDefinition) -> Quoted {
-    let module_has_storage = module_has_storage(f.module());
-    let storage_type = get_storage_type_in_module(f.module());
-
     let original_function_name = f.name();
+    let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
     let return_type = f.return_type();
 
     // Build the parameters: self comes first, then original params
@@ -76,8 +70,17 @@ pub(crate) comptime fn generate_public_internal(f: FunctionDefinition) -> Quoted
         $original_params
     };
 
+    let storage_init = if module_has_storage(f.module()) {
+        quote {
+            let storage = Storage::init(context);
+        }
+    } else {
+        quote {
+            let storage = ();
+        }
+    };
+
     let body = f.body();
-    let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
 
     // Internal functions are regular functions, not entry points
     // We mark them with #[contract_library_method] to prevent them from being compiled as entry points
