@@ -14,7 +14,7 @@ comptime fn generate_private_internal_function_call(f: FunctionDefinition) -> Qu
     let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
 
     quote {
-        pub fn $original_function_name($original_params) -> $original_return_type {
+        pub fn $original_function_name(self, $original_params) -> $original_return_type {
             $fn_name(self.context, $params_at_callsite)
         }
     }
@@ -34,7 +34,7 @@ comptime fn generate_public_internal_function_call(f: FunctionDefinition) -> Quo
     let fn_name = f"__aztec_nr_internals__{original_function_name}".quoted_contents();
 
     quote {
-        pub fn $original_function_name($original_params) -> $original_return_type {
+        pub fn $original_function_name(self, $original_params) -> $original_return_type {
             $fn_name(self.context, $params_at_callsite)
         }
     }

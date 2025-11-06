@@ -5,7 +5,6 @@ use dep::aztec::macros::aztec;
 #[aztec]
 pub contract FeeJuice {
     use dep::aztec::{
-        context::private_context::PrivateContext,
         macros::{functions::{external, internal, only_self, view}, storage::storage},
         protocol_types::{
             address::{AztecAddress, EthAddress},
