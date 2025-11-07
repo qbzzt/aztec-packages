@@ -1,6 +1,8 @@
 use crate::macros::{
     calls_generation::{
-        external_functions::generate_external_function_artifacts,
+        external_functions::{
+            generate_external_function_calls, generate_external_function_self_calls,
+        },
         internal_functions::generate_call_internal_struct,
     },
     dispatch::generate_public_dispatch,
@@ -22,8 +24,8 @@ pub comptime fn aztec(m: Module) -> Quoted {
     // with `static_assert(false, ...)` to prevent them from being called directly from within the contract.
     let functions = process_functions(m);
 
-    let (contract_methods, self_call_structs) = generate_external_function_artifacts(m);
-    let interface = generate_contract_interface(m, contract_methods);
+    let self_call_structs = generate_external_function_self_calls(m);
+    let interface = generate_contract_interface(m);
     let internal_functions_calls = generate_call_internal_struct(m);
 
     // We generate ABI exports for all the external functions in the contract.
@@ -69,7 +71,9 @@ pub comptime fn aztec(m: Module) -> Quoted {
     }
 }
 
-comptime fn generate_contract_interface(m: Module, fn_stubs_quote: Quoted) -> Quoted {
+comptime fn generate_contract_interface(m: Module) -> Quoted {
+    let calls = generate_external_function_calls(m);
+
     let module_name = m.name();
 
     let has_storage_layout = module_has_storage(m) & STORAGE_LAYOUT_NAME.get(m).is_some();
@@ -99,7 +103,7 @@ comptime fn generate_contract_interface(m: Module, fn_stubs_quote: Quoted) -> Qu
         }
 
         impl $module_name {
-            $fn_stubs_quote
+            $calls
 
             pub fn at(
                 addr: aztec::protocol_types::address::AztecAddress

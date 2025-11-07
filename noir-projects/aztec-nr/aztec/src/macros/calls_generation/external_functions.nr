@@ -9,7 +9,7 @@ use crate::macros::{
     utils::is_fn_view,
 };
 
-pub(crate) comptime fn generate_external_function_artifacts(m: Module) -> (Quoted, Quoted) {
+pub(crate) comptime fn generate_external_function_calls(m: Module) -> Quoted {
     let private_functions = external_functions_registry::get_private_functions(m);
     let public_functions = external_functions_registry::get_public_functions(m);
     let utility_functions = external_functions_registry::get_utility_functions(m);
@@ -36,6 +36,17 @@ pub(crate) comptime fn generate_external_function_artifacts(m: Module) -> (Quote
 
     let utility_contract_methods =
         utility_functions.map(|function| create_utility_stub(function)).join(quote {});
+
+    quote {
+        $private_contract_methods
+        $public_contract_methods
+        $utility_contract_methods
+    }
+}
+
+pub(crate) comptime fn generate_external_function_self_calls(m: Module) -> Quoted {
+    let private_functions = external_functions_registry::get_private_functions(m);
+    let public_functions = external_functions_registry::get_public_functions(m);
 
     let call_self_private_methods = private_functions
         .map(|function| {
@@ -97,7 +108,7 @@ pub(crate) comptime fn generate_external_function_artifacts(m: Module) -> (Quote
         })
         .join(quote {});
 
-    let self_call_structs = quote {
+    quote {
         pub struct CallSelf<Context> {
             pub address: dep::aztec::protocol_types::address::AztecAddress,
             pub context: Context,
@@ -141,13 +152,5 @@ pub(crate) comptime fn generate_external_function_artifacts(m: Module) -> (Quote
         impl EnqueueSelfStatic<&mut dep::aztec::context::private_context::PrivateContext> {
             $enqueue_self_static_methods
         }
-    };
-
-    let contract_methods = quote {
-        $private_contract_methods
-        $public_contract_methods
-        $utility_contract_methods
-    };
-
-    (contract_methods, self_call_structs)
+    }
 }
