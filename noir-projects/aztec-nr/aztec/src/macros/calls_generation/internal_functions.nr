@@ -47,7 +47,14 @@ comptime fn generate_public_internal_function_call(f: FunctionDefinition) -> Quo
     }
 }
 
-pub(crate) comptime fn generate_internal_functions_calls(m: Module) -> Quoted {
+/// Generates a struct which is injected into contracts via the `#[aztec]` macro and which is then instantiated in the
+/// external and internal functions' bodies and provided into the `ContractSelf` struct. This then allows for the
+/// following API:
+///
+/// ```noir
+/// self.internal.my_internal_function(arg1, arg2);
+/// ```
+pub(crate) comptime fn generate_call_internal_struct(m: Module) -> Quoted {
     let private_internal_functions = internal_functions_registry::get_private_functions(m);
     let public_internal_functions = internal_functions_registry::get_public_functions(m);
 

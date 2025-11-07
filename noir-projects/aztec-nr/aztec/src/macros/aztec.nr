@@ -1,5 +1,5 @@
 use crate::macros::{
-    calls_generation::internal_functions::generate_internal_functions_calls,
+    calls_generation::internal_functions::generate_call_internal_struct,
     dispatch::generate_public_dispatch,
     functions::{self_call_registry, stub_registry, utils::check_each_fn_macroified},
     internals_functions_generation::{create_fn_abi_exports, process_functions},
@@ -21,7 +21,7 @@ pub comptime fn aztec(m: Module) -> Quoted {
 
     let interface = generate_contract_interface(m);
     let self_call_structs = generate_self_call_structs(m);
-    let internal_functions_calls = generate_internal_functions_calls(m);
+    let call_internal_struct = generate_call_internal_struct(m);
 
     // We generate ABI exports for all the external functions in the contract.
     let fn_abi_exports = create_fn_abi_exports(m);
@@ -56,7 +56,7 @@ pub comptime fn aztec(m: Module) -> Quoted {
     quote {
         $interface
         $self_call_structs
-        $internal_functions_calls
+        $call_internal_struct
         $functions
         $fn_abi_exports
         $contract_library_method_compute_note_hash_and_nullifier
