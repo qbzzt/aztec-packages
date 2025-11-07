@@ -208,15 +208,18 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
         emit_event_in_private(event, self.context, recipient, delivery_mode);
     }
 
-    /// Makes the call to this private function.
+    /// Makes a call to the private function defined by the `call` parameter.
     ///
     /// # Arguments
-    /// * `context` - The PrivateContext -- made magically available to the body
-    ///               of every #[external("private")] function as `context`, through the
-    ///               #[external("private")] annotation's macro.
+    /// * `call` - The object representing the private function to invoke.
     ///
     /// # Returns
     /// * `T` - Whatever data the called function has returned.
+    ///
+    /// # Example
+    /// ```noir
+    /// self.call(Token::at(address).transfer_in_private(recipient, amount));
+    /// ```
     ///
     /// This enables contracts to interact with each other while maintaining
     /// privacy. This "composability" of private contract functions is a key
@@ -262,14 +265,6 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     /// * Side effects from the called function are included in this transaction
     /// * The call inherits the current transaction's context and gas limits
     ///
-    /// # Arguments
-    /// * `context` - The PrivateContext -- made magically available to the body
-    ///               of every #[external("private")] function as `context`, through the
-    ///               #[external("private")] annotation's macro.
-    ///
-    /// # Returns
-    /// * `T` - Whatever data the called function has returned.
-    ///
     pub fn call<let M: u32, T>(&mut self, call: PrivateCallInterface<M, T>) -> T
     where
         T: Deserialize,
@@ -277,17 +272,19 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
         call.call(self.context)
     }
 
-    /// Makes a read-only call to this private function.
+    /// Makes a read-only call to the private function defined by the `call` parameter.
     ///
     /// This is similar to Solidity's `staticcall`. The called function
     /// cannot modify state, emit L2->L1 messages, nor emit events. Any nested
-    /// calls are constrained to also be staticcalls.
+    /// calls are constrained to also be stati ccalls.
     ///
     /// # Arguments
-    /// * `context` - The PrivateContext -- made magically available to the body
-    ///               of every #[external("private")] function as `context`, through the
-    ///               #[external("private")] annotation's macro.
+    /// * `call` - The object representing the read-only private function to invoke.
     ///
+    /// # Example
+    /// ```noir
+    /// self.view(Token::at(address).balance_of_private(recipient));
+    /// ```
     pub fn view<let M: u32, T>(&mut self, call: PrivateStaticCallInterface<M, T>) -> T
     where
         T: Deserialize,
@@ -295,7 +292,8 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
         call.view(self.context)
     }
 
-    /// Enqueues a call to this public function, to be executed later.
+    /// Enqueues a call to the public function defined by the `call` parameter,
+    /// to be executed later.
     ///
     /// Unlike private functions which execute immediately on the user's device,
     /// public function calls are "enqueued" and executed some time later by a
@@ -320,9 +318,7 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     /// See also: https://docs.aztec.network/developers/resources/considerations/privacy_considerations
     ///
     /// # Arguments
-    /// * `context` - The PrivateContext -- made magically available to the body
-    ///               of every #[external("private")] function as `context`, through the
-    ///               #[external("private")] annotation's macro.
+    /// * `call` - The interface representing the public function to enqueue.
     ///
     pub fn enqueue<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>)
     where
@@ -331,16 +327,19 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
         call.enqueue(self.context)
     }
 
-    /// Enqueues a read-only call to this public function.
+    /// Enqueues a read-only call to the public function defined by the `call` parameter.
     ///
     /// This is similar to Solidity's `staticcall`. The called function
     /// cannot modify state, emit L2->L1 messages, nor emit events. Any nested
-    /// calls are constrained to also be staticcalls.
+    /// calls are constrained to also be static calls.
     ///
     /// # Arguments
-    /// * `context` - The PrivateContext -- made magically available to the body
-    ///               of every #[external("private")] function as `context`, through the
-    ///               #[external("private")] annotation's macro.
+    /// * `call` - The object representing the read-only public function to enqueue.
+    ///
+    /// # Example
+    /// ```noir
+    /// self.enqueue_view(MyContract::at(address).assert_timestamp_less_than(timestamp));
+    /// ```
     ///
     pub fn enqueue_view<let M: u32, T>(&mut self, call: PublicStaticCallInterface<M, T>)
     where
@@ -349,7 +348,8 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
         call.enqueue_view(self.context)
     }
 
-    /// Enqueues a call to this public function, to be executed later.
+    /// Enqueues a call to the public function defined by the `call` parameter,
+    /// to be executed later.
     ///
     /// As per `enqueue`, but hides this calling contract's address from the
     /// target public function.
@@ -376,9 +376,12 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     ///   enqueued internal public calls.
     ///
     /// # Arguments
-    /// * `context` - The PrivateContext -- made magically available to the body
-    ///               of every #[external("private")] function as `context`, through the
-    ///               #[external("private")] annotation's macro.
+    /// * `call` - The object representing the public function to enqueue.
+    ///
+    /// # Example
+    /// ```noir
+    /// self.enqueue_incognito(Token::at(address).increase_total_supply_by(amount));
+    /// ```
     ///
     /// Advanced:
     /// - The kernel circuits will permit _any_ private function to set the
@@ -395,7 +398,7 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
         call.enqueue_incognito(self.context)
     }
 
-    /// Enqueues a read-only call to this public function.
+    /// Enqueues a read-only call to the public function defined by the `call` parameter.
     ///
     /// As per `enqueue_view`, but hides this calling contract's address from
     /// the target public function.
@@ -403,9 +406,12 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     /// See `enqueue_incognito` for more details relating to hiding msg_sender.
     ///
     /// # Arguments
-    /// * `context` - The PrivateContext -- made magically available to the body
-    ///               of every #[external("private")] function as `context`, through the
-    ///               #[external("private")] annotation's macro.
+    /// * `call` - The object representing the read-only public function to enqueue.
+    ///
+    /// # Example
+    /// ```noir
+    /// self.enqueue_view_incognito(MyContract::at(address).assert_timestamp_less_than(timestamp));
+    /// ```
     ///
     pub fn enqueue_view_incognito<let M: u32, T>(&mut self, call: PublicStaticCallInterface<M, T>)
     where
@@ -414,9 +420,9 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
         call.enqueue_view_incognito(self.context)
     }
 
-    /// Enqueues a call to this public function, and designates it to be the
-    /// teardown function for this tx. Only one teardown function call can be
-    /// made by a tx.
+    /// Enqueues a call to the public function defined by the `call` parameter,
+    /// and designates it to be the teardown function for this tx. Only one teardown
+    /// function call can be made by a tx.
     ///
     /// Niche function: Only wallet developers and paymaster contract developers
     /// (aka Fee-payment contracts) will need to make use of this function.
@@ -441,9 +447,7 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     /// See `enqueue` for more information about enqueuing public function calls.
     ///
     /// # Arguments
-    /// * `context` - The PrivateContext -- made magically available to the body
-    ///               of every #[external("private")] function as `context`, through the
-    ///               #[external("private")] annotation's macro.
+    /// * `call` - The object representing the public function to designate as teardown.
     ///
     pub fn set_as_teardown<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>)
     where
@@ -452,9 +456,9 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
         call.set_as_teardown(self.context)
     }
 
-    /// Enqueues a call to this public function, and designates it to be the teardown
-    /// function for this tx. Only one teardown function call can be made by a
-    /// tx.
+    /// Enqueues a call to the public function defined by the `call` parameter,
+    /// and designates it to be the teardown function for this tx. Only one teardown
+    /// function call can be made by a tx.
     ///
     /// As per `set_as_teardown`, but hides this calling contract's address from
     /// the target public function.
@@ -547,17 +551,20 @@ impl<Storage, CallSelf, CallSelfStatic, CallInternal> ContractSelf<PublicContext
         emit_event_in_public(event, self.context);
     }
 
-    /// Makes the call to this public function.
+    /// Makes the call to the public function defined by the `call` parameter.
     ///
     /// Will revert if the called function reverts or runs out of gas.
     ///
     /// # Arguments
-    /// * `context` - The PublicContext -- made magically available to the body
-    ///               of every #[external("public")] function as `context`, through the
-    ///               #[external("public")] annotation's macro.
+    /// * `call` - The object representing the public function to invoke.
     ///
     /// # Returns
     /// * `T` - Whatever data the called function has returned.
+    ///
+    /// # Example
+    /// ```noir
+    /// self.call(Token::at(address).transfer_in_public(recipient, amount));
+    /// ```
     ///
     pub fn call<let M: u32, T>(self, call: PublicCallInterface<M, T>) -> T
     where
@@ -568,7 +575,7 @@ impl<Storage, CallSelf, CallSelfStatic, CallInternal> ContractSelf<PublicContext
         }
     }
 
-    /// Makes the read-only call to this public function.
+    /// Makes the read-only call to the public function defined by the `call` parameter.
     ///
     /// This is similar to Solidity's `staticcall`. The called function
     /// cannot modify state or emit events. Any nested calls are constrained to
@@ -577,12 +584,15 @@ impl<Storage, CallSelf, CallSelfStatic, CallInternal> ContractSelf<PublicContext
     /// Will revert if the called function reverts or runs out of gas.
     ///
     /// # Arguments
-    /// * `context` - The PublicContext -- made magically available to the body
-    ///               of every #[external("public")] function as `context`, through the
-    ///               #[external("public")] annotation's macro.
+    /// * `call` - The object representing the read-only public function to invoke.
     ///
     /// # Returns
     /// * `T` - Whatever data the called function has returned.
+    ///
+    /// # Example
+    /// ```noir
+    /// self.view(Token::at(address).balance_of_public(recipient));
+    /// ```
     ///
     pub fn view<let M: u32, T>(self, call: PublicStaticCallInterface<M, T>) -> T
     where
