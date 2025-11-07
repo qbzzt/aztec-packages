@@ -1,10 +1,19 @@
 use crate::{
-    context::{private_context::PrivateContext, public_context::PublicContext},
+    context::{
+        call_interfaces::{
+            PrivateCallInterface, PrivateStaticCallInterface, PublicCallInterface,
+            PublicStaticCallInterface,
+        },
+        private_context::PrivateContext,
+        public_context::PublicContext,
+    },
     event::{event_emission::emit_event_in_private, event_interface::EventInterface},
 };
 use super::{context::utility_context::UtilityContext, event::event_emission::emit_event_in_public};
 use protocol_types::{
-    address::AztecAddress, constants::NULL_MSG_SENDER_CONTRACT_ADDRESS, traits::Serialize,
+    address::AztecAddress,
+    constants::NULL_MSG_SENDER_CONTRACT_ADDRESS,
+    traits::{Deserialize, Serialize},
 };
 
 /// `ContractSelf` is the core interface for interacting with an Aztec contract's own state and context.
@@ -198,6 +207,40 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     {
         emit_event_in_private(event, self.context, recipient, delivery_mode);
     }
+
+    pub fn call<let M: u32, T>(&mut self, call: PrivateCallInterface<M, T>) -> T
+    where
+        T: Deserialize,
+    {
+        call.call(self.context)
+    }
+
+    pub fn view<let M: u32, T>(&mut self, call: PrivateStaticCallInterface<M, T>) -> T
+    where
+        T: Deserialize,
+    {
+        call.view(self.context)
+    }
+
+    pub fn enqueue<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>) {
+        call.enqueue(self.context)
+    }
+
+    pub fn enqueue_view<let M: u32, T>(&mut self, call: PublicStaticCallInterface<M, T>) {
+        call.enqueue_view(self.context)
+    }
+
+    pub fn enqueue_view_incognito<let M: u32, T>(&mut self, call: PublicStaticCallInterface<M, T>) {
+        call.enqueue_view_incognito(self.context)
+    }
+
+    pub fn set_as_teardown<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>) {
+        call.set_as_teardown(self.context)
+    }
+
+    pub fn set_as_teardown_incognito<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>) {
+        call.set_as_teardown_incognito(self.context)
+    }
 }
 
 /// Implementation for `ContractSelf` in public execution contexts.
@@ -276,6 +319,20 @@ impl<Storage, CallSelf, CallSelfStatic, CallInternal> ContractSelf<PublicContext
         Event: EventInterface + Serialize,
     {
         emit_event_in_public(event, self.context);
+    }
+
+    pub fn call<let M: u32, T>(self, call: PublicCallInterface<M, T>) -> T
+    where
+        T: Deserialize,
+    {
+        call.call(self.context)
+    }
+
+    pub fn view<let M: u32, T>(self, call: PublicStaticCallInterface<M, T>) -> T
+    where
+        T: Deserialize,
+    {
+        call.view(self.context)
     }
 }
 
