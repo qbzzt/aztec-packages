@@ -159,6 +159,10 @@ export const sequencerConfigMappings: ConfigMappingsType<SequencerConfig> = {
       'Whether to run in fisherman mode: builds blocks on every slot for validation without publishing to L1',
     ...booleanConfigHelper(false),
   },
+  shuffleAttestationOrdering: {
+    description: 'Shuffle attestation ordering to create invalid ordering (for testing only)',
+    ...booleanConfigHelper(false),
+  },
   ...pickConfigMappings(p2pConfigMappings, ['txPublicSetupAllowList']),
 };
 
