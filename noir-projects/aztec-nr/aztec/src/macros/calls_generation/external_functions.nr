@@ -1,5 +1,5 @@
 use crate::macros::{
-    functions::call_interface_stubs::{
+    calls_generation::call_interface_stubs::{
         create_private_self_call_stub, create_private_static_stub, create_private_stub,
         create_public_self_call_static_stub, create_public_self_call_stub,
         create_public_self_enqueue_static_stub, create_public_self_enqueue_stub,
