@@ -3,7 +3,7 @@ import { Secp256k1Signer } from '@aztec/foundation/crypto';
 import { Fr } from '@aztec/foundation/fields';
 import { BlockProposal, ConsensusPayload, PeerErrorSeverity } from '@aztec/stdlib/p2p';
 import { makeBlockAttestation, makeBlockProposal, makeL2BlockHeader } from '@aztec/stdlib/testing';
-import type { TelemetryClient } from '@aztec/telemetry-client';
+import { getTelemetryClient } from '@aztec/telemetry-client';
 
 import { type MockProxy, mock } from 'jest-mock-extended';
 
@@ -13,16 +13,14 @@ import { FishermanAttestationValidator } from './fisherman_attestation_validator
 describe('FishermanAttestationValidator', () => {
   let epochCache: MockProxy<EpochCache>;
   let attestationPool: MockProxy<AttestationPool>;
-  let telemetryClient: MockProxy<TelemetryClient>;
   let validator: FishermanAttestationValidator;
   let proposer: Secp256k1Signer;
   let attester: Secp256k1Signer;
 
   beforeEach(() => {
-    telemetryClient = mock<TelemetryClient>();
     epochCache = mock<EpochCache>();
     attestationPool = mock<AttestationPool>();
-    validator = new FishermanAttestationValidator(epochCache, attestationPool, telemetryClient);
+    validator = new FishermanAttestationValidator(epochCache, attestationPool, getTelemetryClient());
     proposer = Secp256k1Signer.random();
     attester = Secp256k1Signer.random();
   });
