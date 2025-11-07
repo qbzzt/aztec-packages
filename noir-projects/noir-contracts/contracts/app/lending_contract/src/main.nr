@@ -169,7 +169,7 @@ pub contract Lending {
     #[only_self]
     fn _withdraw(owner: AztecAddress, recipient: AztecAddress, amount: u128) {
         let asset = self.call_self.update_accumulator();
-        let price = PriceFeed::at(asset.oracle).get_price(0).view(self.context).price;
+        let price = self.view(PriceFeed::at(asset.oracle).get_price(0)).price;
 
         let coll_loc = self.storage.collateral.at(owner);
         let collateral = coll_loc.read();
@@ -217,7 +217,7 @@ pub contract Lending {
     #[only_self]
     fn _borrow(owner: AztecAddress, to: AztecAddress, amount: u128) {
         let asset = self.call_self.update_accumulator();
-        let price = PriceFeed::at(asset.oracle).get_price(0).view(self.context).price;
+        let price = self.view(PriceFeed::at(asset.oracle).get_price(0)).price;
 
         // Fetch collateral and static_debt, compute health of current position
         let collateral = self.storage.collateral.at(owner).read();

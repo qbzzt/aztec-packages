@@ -890,9 +890,8 @@ pub contract AvmTest {
 
     #[external("public")]
     fn call_instance_registry() {
-        let _ = ContractInstanceRegistry::at(CONTRACT_INSTANCE_REGISTRY_CONTRACT_ADDRESS)
-            .get_update_delay()
-            .view(self.context);
+        let _ = self.view(ContractInstanceRegistry::at(CONTRACT_INSTANCE_REGISTRY_CONTRACT_ADDRESS)
+            .get_update_delay());
     }
 
     /************************************************************************
