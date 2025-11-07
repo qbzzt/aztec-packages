@@ -27,7 +27,6 @@ pub contract StaticParent {
 
     // Private function to directly call another private function to the target_contract using the selector and args provided
     #[external("private")]
-    #[view]
     fn private_call(
         target_contract: AztecAddress,
         target_selector: FunctionSelector,
@@ -99,11 +98,12 @@ pub contract StaticParent {
         target_selector: FunctionSelector,
         args: [Field; 2],
     ) -> Field {
-        self.view(StaticParent::at(self.address).private_call(
-            target_contract,
-            target_selector,
-            args,
-        ))
+        // Not using the new self.view(...) API because that doesn't allow for static calls to non-static functions
+        // which this test seems to rely on. TODO(F-130): Address this and replace e2e_static_calls.test.ts with Noir
+        // tests.
+        StaticParent::at(self.address).private_call(target_contract, target_selector, args).view(
+            self.context,
+        )
     }
 
     // Just like function above but with 3 args.
