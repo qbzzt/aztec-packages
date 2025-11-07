@@ -190,9 +190,12 @@ pub contract FPC {
         // TODO(#10805): Introduce a real exchange rate
         let refund = max_fee - actual_fee;
 
-        Token::at(accepted_asset)
-            .transfer_in_public(self.address, refund_recipient, refund, 0)
-            .call(self.context);
+        self.call(Token::at(accepted_asset).transfer_in_public(
+            self.address,
+            refund_recipient,
+            refund,
+            0,
+        ));
     }
 
     /// Pulls all the accepted asset funds from this contract to the `to` address. Only the admin can call
@@ -206,8 +209,8 @@ pub contract FPC {
         let token = Token::at(config.accepted_asset);
 
         // We send the full balance to `to`.
-        let balance = token.balance_of_public(self.address).view(self.context);
-        token.transfer_in_public(self.address, to, balance, 0).call(self.context);
+        let balance = self.view(token.balance_of_public(self.address));
+        self.call(token.transfer_in_public(self.address, to, balance, 0));
     }
 
     /// Note: Not marked as view as we need it to be callable as an entrypoint since in some places we need to obtain

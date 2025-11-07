@@ -294,7 +294,7 @@ where
         }
     }
 
-    pub fn with_gas(self: &mut Self, gas_opts: GasOpts) -> &mut Self {
+    pub fn with_gas(mut self, gas_opts: GasOpts) -> Self {
         self.gas_opts = gas_opts;
         self
     }
@@ -594,7 +594,7 @@ where
         }
     }
 
-    pub fn with_gas(self: &mut Self, gas_opts: GasOpts) -> &mut Self {
+    pub fn with_gas(mut self, gas_opts: GasOpts) -> Self {
         self.gas_opts = gas_opts;
         self
     }

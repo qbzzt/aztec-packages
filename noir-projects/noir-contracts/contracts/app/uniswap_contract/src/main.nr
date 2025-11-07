@@ -68,9 +68,12 @@ pub contract Uniswap {
         let input_asset_bridge_portal_address = input_asset_bridge_config.portal;
 
         // Transfer funds to this contract
-        Token::at(input_asset)
-            .transfer_in_public(sender, self.address, input_amount, nonce_for_transfer_approval)
-            .call(self.context);
+        self.call(Token::at(input_asset).transfer_in_public(
+            sender,
+            self.address,
+            input_amount,
+            nonce_for_transfer_approval,
+        ));
 
         // Approve bridge to burn this contract's funds and exit to L1 Uniswap Portal
         let _ = self.call_self._approve_bridge_and_exit_input_asset_to_L1(
@@ -206,9 +209,12 @@ pub contract Uniswap {
 
         let this_portal_address = self.storage.portal_address.read();
         // Exit to L1 Uniswap Portal !
-        TokenBridge::at(token_bridge)
-            .exit_to_l1_public(this_portal_address, amount, this_portal_address, authwit_nonce)
-            .call(self.context)
+        self.call(TokenBridge::at(token_bridge).exit_to_l1_public(
+            this_portal_address,
+            amount,
+            this_portal_address,
+            authwit_nonce,
+        ));
     }
     // docs:end:authwit_uniswap_set
 }

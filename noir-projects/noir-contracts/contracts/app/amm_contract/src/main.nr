@@ -184,14 +184,16 @@ pub contract AMM {
         // We can simply skip the refund if the amount to return is 0 in order to save gas: the partial note will
         // simply stay in public storage and not be completed, but this is not an issue.
         if (refund_amount_token0 > 0 as u128) {
-            token0
-                .finalize_transfer_to_private(refund_amount_token0, refund_token0_partial_note)
-                .call(self.context);
+            self.call(token0.finalize_transfer_to_private(
+                refund_amount_token0,
+                refund_token0_partial_note,
+            ));
         }
         if (refund_amount_token1 > 0 as u128) {
-            token1
-                .finalize_transfer_to_private(refund_amount_token1, refund_token1_partial_note)
-                .call(self.context);
+            self.call(token1.finalize_transfer_to_private(
+                refund_amount_token1,
+                refund_token1_partial_note,
+            ));
         }
 
         // With the deposit amounts known, we can compute the number of liquidity tokens to mint and finalize the
@@ -300,9 +302,9 @@ pub contract AMM {
 
         // We can now burn the liquidity tokens that had been privately transferred into the AMM, as well as complete
         // both partial notes.
-        liquidity_token.burn_public(self.address, liquidity, 0).call(self.context);
-        token0.finalize_transfer_to_private(amount0, token0_partial_note).call(self.context);
-        token1.finalize_transfer_to_private(amount1, token1_partial_note).call(self.context);
+        self.call(liquidity_token.burn_public(self.address, liquidity, 0));
+        self.call(token0.finalize_transfer_to_private(amount0, token0_partial_note));
+        self.call(token1.finalize_transfer_to_private(amount1, token1_partial_note));
     }
 
     /// Privately swaps `amount_in` `token_in` tokens for at least `amount_out_mint` `token_out` tokens with the pool.
