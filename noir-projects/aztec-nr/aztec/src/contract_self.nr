@@ -276,10 +276,13 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     ///
     /// This is similar to Solidity's `staticcall`. The called function
     /// cannot modify state, emit L2->L1 messages, nor emit events. Any nested
-    /// calls are constrained to also be stati ccalls.
+    /// calls are constrained to also be static calls.
     ///
     /// # Arguments
     /// * `call` - The object representing the read-only private function to invoke.
+    ///
+    /// # Returns
+    /// * `T` - Whatever data the called function has returned.
     ///
     /// # Example
     /// ```noir
@@ -320,6 +323,9 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     /// # Arguments
     /// * `call` - The interface representing the public function to enqueue.
     ///
+    /// TODO(F-131): We should drop T from here because it is strange as there
+    /// is no return value. The PublicCallInterface type seems to be defined
+    /// incorrectly.
     pub fn enqueue<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>)
     where
         T: Deserialize,
@@ -341,6 +347,9 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     /// self.enqueue_view(MyContract::at(address).assert_timestamp_less_than(timestamp));
     /// ```
     ///
+    /// TODO(F-131): We should drop T from here because it is strange as there
+    /// is no return value. The PublicCallInterface type seems to be defined
+    /// incorrectly.
     pub fn enqueue_view<let M: u32, T>(&mut self, call: PublicStaticCallInterface<M, T>)
     where
         T: Deserialize,
@@ -391,6 +400,9 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     ///   aztec-nr will translate NULL_MSG_SENDER_CONTRACT_ADDRESS into
     ///   `Option<AztecAddress>::none` for familiarity to devs.
     ///
+    /// TODO(F-131): We should drop T from here because it is strange as there
+    /// is no return value. The PublicCallInterface type seems to be defined
+    /// incorrectly.
     pub fn enqueue_incognito<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>)
     where
         T: Deserialize,
@@ -413,6 +425,9 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     /// self.enqueue_view_incognito(MyContract::at(address).assert_timestamp_less_than(timestamp));
     /// ```
     ///
+    /// TODO(F-131): We should drop T from here because it is strange as there
+    /// is no return value. The PublicCallInterface type seems to be defined
+    /// incorrectly.
     pub fn enqueue_view_incognito<let M: u32, T>(&mut self, call: PublicStaticCallInterface<M, T>)
     where
         T: Deserialize,
@@ -449,6 +464,9 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     /// # Arguments
     /// * `call` - The object representing the public function to designate as teardown.
     ///
+    /// TODO(F-131): We should drop T from here because it is strange as there
+    /// is no return value. The PublicCallInterface type seems to be defined
+    /// incorrectly.
     pub fn set_as_teardown<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>)
     where
         T: Deserialize,
@@ -465,6 +483,9 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
     ///
     /// See `enqueue_incognito` for more details relating to hiding msg_sender.
     ///
+    /// TODO(F-131): We should drop T from here because it is strange as there
+    /// is no return value. The PublicCallInterface type seems to be defined
+    /// incorrectly.
     pub fn set_as_teardown_incognito<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>)
     where
         T: Deserialize,
