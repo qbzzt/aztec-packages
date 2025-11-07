@@ -16,7 +16,7 @@ pub contract AvmTest {
         avm_return, avm_revert, call, returndata_copy, returndata_size, success_copy,
     };
     use dep::aztec::context::gas::GasOpts;
-    use dep::aztec::macros::{functions::external, storage::storage};
+    use dep::aztec::macros::{functions::{external, view}, storage::storage};
     use dep::aztec::oracle::get_contract_instance::{
         get_contract_instance_class_id_avm, get_contract_instance_deployer_avm,
         get_contract_instance_initialization_hash_avm,
@@ -163,6 +163,7 @@ pub contract AvmTest {
      * General Opcodes
      ************************************************************************/
     #[external("public")]
+    #[view]
     fn set_opcode_u8() -> u8 {
         8
     }
@@ -863,7 +864,8 @@ pub contract AvmTest {
      */
     #[external("private")]
     fn enqueue_public_from_private() {
-        AvmTest::at(self.address).set_opcode_u8().enqueue_view(self.context);
+        // TODO(benesjan): Implement self.enqueue_view_self or smt. like that.
+        self.enqueue_view(AvmTest::at(self.address).set_opcode_u8());
         self.enqueue_self.set_read_storage_single(5);
     }
 
