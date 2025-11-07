@@ -87,15 +87,17 @@ pub contract FPC {
         // fee juice/mana/gas limit. Currently the fee juice/AA exchange rate is fixed 1:1.
 
         // Pull the max fee from the user's balance of the accepted asset to the public balance of this contract.
-        token.transfer_to_public(user, self.address, max_fee, authwit_nonce).call(self.context);
+        self.call(token.transfer_to_public(user, self.address, max_fee, authwit_nonce));
 
         // Prepare a partial note for the refund for the user.
-        let partial_note = token.prepare_private_balance_increase(user).call(self.context);
+        let partial_note = self.call(token.prepare_private_balance_increase(user));
 
         // Set a public teardown function in which the refund will be paid back to the user by finalizing the partial note.
-        FPC::at(self.address)
-            ._complete_refund(accepted_asset, partial_note, max_fee)
-            .set_as_teardown(self.context);
+        self.set_as_teardown(FPC::at(self.address)._complete_refund(
+            accepted_asset,
+            partial_note,
+            max_fee,
+        ));
 
         // Set the FPC as the fee payer of the tx.
         self.context.set_as_fee_payer();
@@ -156,14 +158,19 @@ pub contract FPC {
 
         // We pull the max fee from the user's balance of the accepted asset to this contract.
         // docs:start:public_call
-        Token::at(config.accepted_asset)
-            .transfer_in_public(self.msg_sender().unwrap(), self.address, max_fee, authwit_nonce)
-            .enqueue(self.context);
+        self.enqueue(Token::at(config.accepted_asset).transfer_in_public(
+            self.msg_sender().unwrap(),
+            self.address,
+            max_fee,
+            authwit_nonce,
+        ));
         // docs:end:public_call
 
-        FPC::at(self.address)
-            ._pay_refund(self.msg_sender().unwrap(), max_fee, config.accepted_asset)
-            .set_as_teardown(self.context);
+        self.set_as_teardown(FPC::at(self.address)._pay_refund(
+            self.msg_sender().unwrap(),
+            max_fee,
+            config.accepted_asset,
+        ));
 
         // Set the FPC as the fee payer of the tx.
         self.context.set_as_fee_payer();

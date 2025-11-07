@@ -329,9 +329,12 @@ pub contract AMM {
 
         // We transfer the full amount in, since it is an exact amount, and prepare a partial note for the amount out,
         // which will only be known during public execution as it depends on the live balances.
-        Token::at(token_in).transfer_to_public(sender, self.address, amount_in, authwit_nonce).call(
-            self.context,
-        );
+        self.call(Token::at(token_in).transfer_to_public(
+            sender,
+            self.address,
+            amount_in,
+            authwit_nonce,
+        ));
         let token_out_partial_note =
             self.call(Token::at(token_out).prepare_private_balance_increase(sender));
 

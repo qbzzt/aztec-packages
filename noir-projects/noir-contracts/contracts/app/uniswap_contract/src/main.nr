@@ -122,10 +122,9 @@ pub contract Uniswap {
         secret_hash_for_L1_to_l2_message: Field, // for when l1 uniswap portal inserts the message to consume output assets on L2
         caller_on_L1: EthAddress, // ethereum address that can call this function on the L1 portal (0x0 if anyone can call)
     ) {
-        let input_asset_bridge_config =
-            TokenBridge::at(input_asset_bridge).get_config().view(self.context);
+        let input_asset_bridge_config = self.view(TokenBridge::at(input_asset_bridge).get_config());
         let output_asset_bridge_config =
-            TokenBridge::at(output_asset_bridge).get_config().view(self.context);
+            self.view(TokenBridge::at(output_asset_bridge).get_config());
 
         // Assert that user provided token address is same as expected by token bridge.
         // we can't directly use `input_asset_bridge.token` because that is a public method and public can't return data to private
@@ -135,14 +134,12 @@ pub contract Uniswap {
         );
 
         // Transfer funds to this contract
-        Token::at(input_asset)
-            .transfer_to_public(
-                self.msg_sender().unwrap(),
-                self.address,
-                input_amount,
-                nonce_for_transfer_to_public_approval,
-            )
-            .call(self.context);
+        self.call(Token::at(input_asset).transfer_to_public(
+            self.msg_sender().unwrap(),
+            self.address,
+            input_amount,
+            nonce_for_transfer_to_public_approval,
+        ));
 
         // Approve bridge to burn this contract's funds and exit to L1 Uniswap Portal
         self.enqueue_self._approve_bridge_and_exit_input_asset_to_L1(

@@ -110,9 +110,12 @@ pub contract Lending {
     ) {
         let on_behalf_of =
             compute_identifier(secret, on_behalf_of, self.msg_sender().unwrap().to_field());
-        let _res = Token::at(collateral_asset)
-            .transfer_to_public(from, self.address, amount, authwit_nonce)
-            .call(self.context);
+        let _res = self.call(Token::at(collateral_asset).transfer_to_public(
+            from,
+            self.address,
+            amount,
+            authwit_nonce,
+        ));
         // docs:start:enqueue_public
         self.enqueue_self._deposit(AztecAddress::from_field(on_behalf_of), amount, collateral_asset);
         // docs:end:enqueue_public
@@ -239,7 +242,7 @@ pub contract Lending {
         let on_behalf_of =
             compute_identifier(secret, on_behalf_of, self.msg_sender().unwrap().to_field());
         // docs:start:private_call
-        let _ = Token::at(stable_coin).burn_private(from, amount, authwit_nonce).call(self.context);
+        let _ = self.call(Token::at(stable_coin).burn_private(from, amount, authwit_nonce));
         // docs:end:private_call
         self.enqueue_self._repay(AztecAddress::from_field(on_behalf_of), amount, stable_coin);
     }
