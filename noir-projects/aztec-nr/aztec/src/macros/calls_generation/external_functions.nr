@@ -58,7 +58,7 @@ pub(crate) comptime fn generate_external_function_calls(m: Module) -> Quoted {
 ///     `self.enqueue_self.some_public_function(args)`
 /// - `EnqueueSelfStatic`: Enqueue your own view public functions, e.g.:
 ///     `self.enqueue_self_static.some_view_function(args)`
-pub(crate) comptime fn generate_external_function_self_calls(m: Module) -> Quoted {
+pub(crate) comptime fn generate_external_function_self_calls_structs(m: Module) -> Quoted {
     let private_functions = external_functions_registry::get_private_functions(m);
     let public_functions = external_functions_registry::get_public_functions(m);
 

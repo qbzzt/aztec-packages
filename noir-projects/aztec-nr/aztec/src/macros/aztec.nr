@@ -1,7 +1,7 @@
 use crate::macros::{
     calls_generation::{
         external_functions::{
-            generate_external_function_calls, generate_external_function_self_calls,
+            generate_external_function_calls, generate_external_function_self_calls_structs,
         },
         internal_functions::generate_call_internal_struct,
     },
@@ -24,9 +24,10 @@ pub comptime fn aztec(m: Module) -> Quoted {
     // with `static_assert(false, ...)` to prevent them from being called directly from within the contract.
     let functions = process_functions(m);
 
-    let self_call_structs = generate_external_function_self_calls(m);
+    // We generate structs and their implementations necessary for convenient functions calls.
     let interface = generate_contract_interface(m);
-    let internal_functions_calls = generate_call_internal_struct(m);
+    let self_call_structs = generate_external_function_self_calls_structs(m);
+    let call_internal_struct = generate_call_internal_struct(m);
 
     // We generate ABI exports for all the external functions in the contract.
     let fn_abi_exports = create_fn_abi_exports(m);
