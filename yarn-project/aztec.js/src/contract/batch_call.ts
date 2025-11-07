@@ -1,7 +1,8 @@
 import { ExecutionPayload, mergeExecutionPayloads } from '@aztec/entrypoints/payload';
 import { type FunctionCall, FunctionType, decodeFromAbi } from '@aztec/stdlib/abi';
+import { TxSimulationResult, UtilitySimulationResult } from '@aztec/stdlib/tx';
 
-import type { Wallet } from '../wallet/wallet.js';
+import type { BatchedMethod, Wallet } from '../wallet/wallet.js';
 import { BaseContractInteraction } from './base_contract_interaction.js';
 import {
   type RequestInteractionOptions,
@@ -70,52 +71,59 @@ export class BatchCall extends BaseContractInteraction {
       { indexedExecutionPayloads: [], utility: [], publicIndex: 0, privateIndex: 0 },
     );
 
-    const payloads = indexedExecutionPayloads.map(([request]) => request);
-    const combinedPayload = mergeExecutionPayloads(payloads);
-    const executionPayload = new ExecutionPayload(
-      combinedPayload.calls,
-      combinedPayload.authWitnesses.concat(options.authWitnesses ?? []),
-      combinedPayload.capsules.concat(options.capsules ?? []),
-      combinedPayload.extraHashedArgs,
-    );
+    const batchRequests: Array<BatchedMethod<'simulateUtility'> | BatchedMethod<'simulateTx'>> = [];
+    const requestIndexMap = [];
 
-    const utilityBatchPromise =
-      utility.length > 0
-        ? this.wallet.batch(
-            utility.map(([call]) => ({
-              name: 'simulateUtility' as const,
-              args: [call.name, call.args, call.to, options?.authWitnesses] as const,
-            })),
-          )
-        : Promise.resolve([]);
+    utility.forEach(([call, index]) => {
+      batchRequests.push({
+        name: 'simulateUtility' as const,
+        args: [call.name, call.args, call.to, options?.authWitnesses],
+      });
+      requestIndexMap.push(index);
+    });
 
-    const [utilityBatchResults, simulatedTx] = await Promise.all([
-      utilityBatchPromise,
-      indexedExecutionPayloads.length > 0
-        ? this.wallet.simulateTx(executionPayload, await toSimulateOptions(options))
-        : Promise.resolve(),
-    ]);
+    if (indexedExecutionPayloads.length > 0) {
+      const payloads = indexedExecutionPayloads.map(([request]) => request);
+      const combinedPayload = mergeExecutionPayloads(payloads);
+      const executionPayload = new ExecutionPayload(
+        combinedPayload.calls,
+        combinedPayload.authWitnesses.concat(options.authWitnesses ?? []),
+        combinedPayload.capsules.concat(options.capsules ?? []),
+        combinedPayload.extraHashedArgs,
+      );
+
+      batchRequests.push({
+        name: 'simulateTx' as const,
+        args: [executionPayload, await toSimulateOptions(options)],
+      });
+      requestIndexMap.push(-1); // Will be processed separately
+    }
+
+    const batchResults = batchRequests.length > 0 ? await this.wallet.batch(batchRequests) : [];
 
     const results: any[] = [];
 
-    utilityBatchResults.forEach((wrappedResult, utilityIndex) => {
-      const [, originalIndex] = utility[utilityIndex];
-      results[originalIndex] = wrappedResult.result.result;
-    });
+    for (const [batchIndex, wrappedResult] of batchResults.entries()) {
+      const mapping = requestIndexMap[batchIndex];
 
-    if (simulatedTx) {
-      indexedExecutionPayloads.forEach(([request, callIndex, resultIndex]) => {
-        const call = request.calls[0];
-        // As account entrypoints are private, for private functions we retrieve the return values from the first nested call
-        // since we're interested in the first set of values AFTER the account entrypoint
-        // For public functions we retrieve the first values directly from the public output.
-        const rawReturnValues =
-          call.type == FunctionType.PRIVATE
-            ? simulatedTx.getPrivateReturnValues()?.nested?.[resultIndex].values
-            : simulatedTx.getPublicReturnValues()?.[resultIndex].values;
+      if (wrappedResult.name === 'simulateUtility') {
+        const utilityResult = wrappedResult.result as UtilitySimulationResult;
+        results[mapping] = utilityResult.result;
+      } else if (wrappedResult.name === 'simulateTx') {
+        const simulatedTx = wrappedResult.result as TxSimulationResult;
+        indexedExecutionPayloads.forEach(([request, callIndex, resultIndex]) => {
+          const call = request.calls[0];
+          // As account entrypoints are private, for private functions we retrieve the return values from the first nested call
+          // since we're interested in the first set of values AFTER the account entrypoint
+          // For public functions we retrieve the first values directly from the public output.
+          const rawReturnValues =
+            call.type == FunctionType.PRIVATE
+              ? simulatedTx.getPrivateReturnValues()?.nested?.[resultIndex].values
+              : simulatedTx.getPublicReturnValues()?.[resultIndex].values;
 
-        results[callIndex] = rawReturnValues ? decodeFromAbi(call.returnTypes, rawReturnValues) : [];
-      });
+          results[callIndex] = rawReturnValues ? decodeFromAbi(call.returnTypes, rawReturnValues) : [];
+        });
+      }
     }
 
     return results;

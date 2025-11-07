@@ -200,16 +200,20 @@ describe('WalletSchema', () => {
     const opts: SendOptions = {
       from: await AztecAddress.random(),
     };
+    const simulateOpts: SimulateOptions = {
+      from: await AztecAddress.random(),
+    };
 
     const methods: BatchedMethod<keyof BatchableMethods>[] = [
       { name: 'registerSender', args: [address1, 'alias1'] },
       { name: 'registerContract', args: [address2, undefined, undefined] },
       { name: 'sendTx', args: [exec, opts] },
       { name: 'simulateUtility', args: ['testFunction', [Fr.random()], address3, [AuthWitness.random()]] },
+      { name: 'simulateTx', args: [exec, simulateOpts] },
     ];
 
     const results = await context.client.batch(methods);
-    expect(results).toHaveLength(4);
+    expect(results).toHaveLength(5);
     expect(results[0]).toEqual({ name: 'registerSender', result: expect.any(AztecAddress) });
     expect(results[1]).toEqual({
       name: 'registerContract',
@@ -217,6 +221,7 @@ describe('WalletSchema', () => {
     });
     expect(results[2]).toEqual({ name: 'sendTx', result: expect.any(TxHash) });
     expect(results[3]).toEqual({ name: 'simulateUtility', result: expect.any(UtilitySimulationResult) });
+    expect(results[4]).toEqual({ name: 'simulateTx', result: expect.any(TxSimulationResult) });
   });
 });
 
