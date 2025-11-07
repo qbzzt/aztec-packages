@@ -163,8 +163,13 @@ pub contract AvmTest {
      * General Opcodes
      ************************************************************************/
     #[external("public")]
-    #[view]
     fn set_opcode_u8() -> u8 {
+        8
+    }
+
+    #[external("public")]
+    #[view]
+    fn set_opcode_u8_view() -> u8 {
         8
     }
 
@@ -864,7 +869,7 @@ pub contract AvmTest {
      */
     #[external("private")]
     fn enqueue_public_from_private() {
-        self.enqueue_self_static.set_opcode_u8();
+        self.enqueue_self_static.set_opcode_u8_view();
         self.enqueue_self.set_read_storage_single(5);
     }
 
