@@ -104,29 +104,27 @@ pub contract AMM {
         // We don't yet know how many tokens the sender will actually supply - that can only be computed during public
         // execution since the amounts supplied must have the same ratio as the live balances. We therefore transfer the
         // maximum amounts here, and prepare partial notes that return the change to the sender (if any).
-        let refund_token0_partial_note = token0
+        let refund_token0_partial_note = self.call(token0
             .transfer_to_public_and_prepare_private_balance_increase(
                 sender,
                 self.address,
                 amount0_max,
                 authwit_nonce,
-            )
-            .call(self.context);
+            ));
 
-        let refund_token1_partial_note = token1
+        let refund_token1_partial_note = self.call(token1
             .transfer_to_public_and_prepare_private_balance_increase(
                 sender,
                 self.address,
                 amount1_max,
                 authwit_nonce,
-            )
-            .call(self.context);
+            ));
 
         // The number of liquidity tokens to mint for the caller depends on both the live balances and the amount
         // supplied, both of which can only be known during public execution. We therefore prepare a partial note that
         // will get completed via minting.
         let liquidity_partial_note =
-            liquidity_token.prepare_private_balance_increase(sender).call(self.context);
+            self.call(liquidity_token.prepare_private_balance_increase(sender));
 
         // We then complete the flow in public. Note that the type of operation and amounts will all be publicly known,
         // but the identity of the caller is not revealed despite us being able to send tokens to them by completing the
@@ -254,16 +252,12 @@ pub contract AMM {
         // a function to privately burn, so we instead transfer the tokens into the AMM's public balance, and then have
         // the AMM publicly burn its own tokens.
         // TODO(#10287): consider adding a private burn
-        liquidity_token.transfer_to_public(sender, self.address, liquidity, authwit_nonce).call(
-            self.context,
-        );
+        self.call(liquidity_token.transfer_to_public(sender, self.address, liquidity, authwit_nonce));
 
         // We don't yet know how many tokens the sender will get - that can only be computed during public execution
         // since the it depends on the live balances. We therefore simply prepare partial notes to the sender.
-        let token0_partial_note =
-            token0.prepare_private_balance_increase(sender).call(self.context);
-        let token1_partial_note =
-            token1.prepare_private_balance_increase(sender).call(self.context);
+        let token0_partial_note = self.call(token0.prepare_private_balance_increase(sender));
+        let token1_partial_note = self.call(token1.prepare_private_balance_increase(sender));
 
         // We then complete the flow in public. Note that the type of operation and amounts will all be publicly known,
         // but the identity of the caller is not revealed despite us being able to send tokens to them by completing the
@@ -339,7 +333,7 @@ pub contract AMM {
             self.context,
         );
         let token_out_partial_note =
-            Token::at(token_out).prepare_private_balance_increase(sender).call(self.context);
+            self.call(Token::at(token_out).prepare_private_balance_increase(sender));
 
         self.enqueue_self._swap_exact_tokens_for_tokens(
             token_in,
@@ -405,17 +399,16 @@ pub contract AMM {
         // Technically the token out note does not need to be partial, since we do know the amount out, but we do want
         // to wait until the swap has been completed before committing the note to the tree to avoid it being spent too
         // early.
-        let change_token_in_partial_note = Token::at(token_in)
+        let change_token_in_partial_note = self.call(Token::at(token_in)
             .transfer_to_public_and_prepare_private_balance_increase(
                 sender,
                 self.address,
                 amount_in_max,
                 authwit_nonce,
-            )
-            .call(self.context);
+            ));
 
         let token_out_partial_note =
-            Token::at(token_out).prepare_private_balance_increase(sender).call(self.context);
+            self.call(Token::at(token_out).prepare_private_balance_increase(sender));
 
         self.enqueue_self._swap_tokens_for_exact_tokens(
             token_in,
@@ -452,9 +445,10 @@ pub contract AMM {
 
         let change = amount_in_max - amount_in;
         if (change > 0 as u128) {
-            Token::at(token_in)
-                .finalize_transfer_to_private(change, change_token_in_partial_note)
-                .call(self.context);
+            self.call(Token::at(token_in).finalize_transfer_to_private(
+                change,
+                change_token_in_partial_note,
+            ));
         }
 
         // Note again that we already knew the amount out, but for consistency we want to only commit this note once
