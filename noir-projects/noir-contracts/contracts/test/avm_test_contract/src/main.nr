@@ -864,8 +864,7 @@ pub contract AvmTest {
      */
     #[external("private")]
     fn enqueue_public_from_private() {
-        // TODO(benesjan): Implement self.enqueue_view_self or smt. like that.
-        self.enqueue_view(AvmTest::at(self.address).set_opcode_u8());
+        self.enqueue_self_static.set_opcode_u8();
         self.enqueue_self.set_read_storage_single(5);
     }
 

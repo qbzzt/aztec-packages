@@ -143,6 +143,7 @@ where
     /// # Returns
     /// * `T` - Whatever data the called function has returned.
     ///
+    /// TODO(F-130): Drop this function. This should be present only on PrivateStaticCallInterface.
     pub fn view(self, context: &mut PrivateContext) -> T {
         execution_cache::store(self.args, self.args_hash);
         let returns_hash = context.call_private_function_with_args_hash(
@@ -338,6 +339,7 @@ where
     /// # Returns
     /// * `T` - Whatever data the called function has returned.
     ///
+    /// TODO(F-130): Drop this function. This should be present only on PublicStaticCallInterface.
     pub unconstrained fn view(self, context: PublicContext) -> T {
         let returns = context.static_call_public_function(
             self.target_contract,
@@ -437,6 +439,7 @@ where
     ///               of every #[external("private")] function as `context`, through the
     ///               #[external("private")] annotation's macro.
     ///
+    /// TODO(F-130): Drop this function. This should be present only on PublicStaticCallInterface.
     pub fn enqueue_view(self, context: &mut PrivateContext) {
         self.enqueue_impl(context, true, false)
     }
@@ -453,6 +456,7 @@ where
     ///               of every #[external("private")] function as `context`, through the
     ///               #[external("private")] annotation's macro.
     ///
+    /// TODO(F-130): Drop this function. This should be present only on PublicStaticCallInterface.
     pub fn enqueue_view_incognito(self, context: &mut PrivateContext) {
         self.enqueue_impl(context, true, true)
     }
