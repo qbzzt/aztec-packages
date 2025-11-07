@@ -9,7 +9,7 @@ use crate::macros::{
     utils::is_fn_view,
 };
 
-/// Generates the external function calls that are to be injected into the contract interface.
+/// Generates external function calls that are to be injected into the contract interface.
 ///
 /// The contract interface enables you to form calls such as `Token::at(address).some_function(args)`.
 /// This function generates the implementation of `some_function` within the interface.

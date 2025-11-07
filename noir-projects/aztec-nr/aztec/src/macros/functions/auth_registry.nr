@@ -1,3 +1,6 @@
+// TODO(benesjan): Instead of having this registry, just generate the authorize check when the given
+// `__aztec_nr_internals__` function is being generated. Having this registry is completely unnecessary.
+
 use poseidon::poseidon2::Poseidon2Hasher;
 use std::{collections::umap::UHashMap, hash::BuildHasherDefault};
 
