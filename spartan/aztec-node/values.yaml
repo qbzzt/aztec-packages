@@ -36,7 +36,7 @@ global:
   aztecImage:
     repository: aztecprotocol/aztec
     tag: ""
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
   # -- Collector endpoint - e.g. http://localhost:4318
   otelCollectorEndpoint: ""
@@ -117,7 +117,7 @@ node:
     periodSeconds: 30
     # -- Failure threshold
     # 10 minutes default but this might not be enough if the node has to download a lot of blocks.
-    failureThreshold: 20 
+    failureThreshold: 20
 
   resources: {}
 

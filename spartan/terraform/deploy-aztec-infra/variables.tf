@@ -508,3 +508,9 @@ variable "BLOB_ALLOW_EMPTY_SOURCES" {
   type        = bool
   default     = false
 }
+
+variable "PROVER_AGENT_POLL_INTERVAL_MS" {
+  description = "Interval in milliseconds between prover agent polls"
+  type        = number
+  default     = 1000
+}

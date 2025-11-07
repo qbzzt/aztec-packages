@@ -286,8 +286,8 @@ export class OpenTelemetryClient implements TelemetryClient {
         exporters.push({
           exporter: new OtelFilterMetricExporter(
             new OTLPMetricExporter({ url: config.metricsCollectorUrl.href }),
-            config.otelExcludeMetrics,
-            'deny',
+            config.otelExcludeMetrics.length > 0 ? config.otelExcludeMetrics : config.otelIncludeMetrics,
+            config.otelExcludeMetrics.length > 0 ? 'deny' : 'allow',
           ),
           exportTimeoutMillis: config.otelExportTimeoutMs,
           exportIntervalMillis: config.otelCollectIntervalMs,

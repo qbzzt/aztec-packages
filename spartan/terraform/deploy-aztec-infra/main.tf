@@ -197,6 +197,7 @@ locals {
           "broker.node.proverRealProofs"                        = var.PROVER_REAL_PROOFS
           "broker.node.env.BOOTSTRAP_NODES"                     = "asdf"
           "agent.node.proverRealProofs"                         = var.PROVER_REAL_PROOFS
+          "agent.node.env.PROVER_AGENT_POLL_INTERVAL_MS"        = var.PROVER_AGENT_POLL_INTERVAL_MS
           "agent.replicaCount"                                  = var.PROVER_REPLICAS
           "agent.node.env.BOOTSTRAP_NODES"                      = "asdf"
           "agent.node.env.AGENT_COUNT"                          = var.PROVER_AGENTS_PER_PROVER
