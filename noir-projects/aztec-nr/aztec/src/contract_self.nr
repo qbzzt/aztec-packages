@@ -587,13 +587,11 @@ impl<Storage, CallSelf, CallSelfStatic, CallInternal> ContractSelf<PublicContext
     /// self.call(Token::at(address).transfer_in_public(recipient, amount));
     /// ```
     ///
-    pub fn call<let M: u32, T>(self, call: PublicCallInterface<M, T>) -> T
+    pub unconstrained fn call<let M: u32, T>(self, call: PublicCallInterface<M, T>) -> T
     where
         T: Deserialize,
     {
-        unsafe {
-            call.call(self.context)
-        }
+        call.call(self.context)
     }
 
     /// Makes the read-only call to the public function defined by the `call` parameter.
@@ -615,13 +613,11 @@ impl<Storage, CallSelf, CallSelfStatic, CallInternal> ContractSelf<PublicContext
     /// self.view(Token::at(address).balance_of_public(recipient));
     /// ```
     ///
-    pub fn view<let M: u32, T>(self, call: PublicStaticCallInterface<M, T>) -> T
+    pub unconstrained fn view<let M: u32, T>(self, call: PublicStaticCallInterface<M, T>) -> T
     where
         T: Deserialize,
     {
-        unsafe {
-            call.view(self.context)
-        }
+        call.view(self.context)
     }
 }
 
