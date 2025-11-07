@@ -99,57 +99,105 @@ std::vector<uint8_t> fr_to_bytes(const fr& value)
  *
  * Takes VM-generated initial values and iteratively solves to satisfy constraints
  */
-bool solve_witnesses(const std::vector<Acir::Expression>& expressions,
+bool solve_witnesses(std::vector<Acir::Expression>& expressions,
                      uint32_t num_witnesses,
                      std::map<uint32_t, fr>& witnesses)
 {
     // Initial values already set from witness VM - just solve to satisfy constraints
     (void)num_witnesses; // Reserved for future constraint validation
 
-    // Iteratively solve constraints
-    for (size_t iter = 0; iter < 20; ++iter) {
-        bool changed = false;
+    // STEP 1: Identify witnesses that appear ONLY in linear constraints (not in mul_terms)
+    // across ALL expressions
+    std::set<uint32_t> linear_only_witnesses;
+    std::map<uint32_t, bool> witness_has_nonlinear;
 
-        for (const auto& expr : expressions) {
-            // Evaluate current value
-            fr value = bytes_to_fr(expr.q_c);
+    for (const auto& expr : expressions) {
+        // Mark all witnesses in mul_terms as non-linear
+        for (const auto& [coeff_bytes, w1, w2] : expr.mul_terms) {
+            witness_has_nonlinear[w1.value] = true;
+            witness_has_nonlinear[w2.value] = true;
+        }
+    }
 
-            for (const auto& [coeff_bytes, w1, w2] : expr.mul_terms) {
-                fr coeff = bytes_to_fr(coeff_bytes);
-                value += coeff * witnesses[w1.value] * witnesses[w2.value];
+    // Collect witnesses that only appear in linear_combinations
+    for (const auto& expr : expressions) {
+        for (const auto& [coeff_bytes, w] : expr.linear_combinations) {
+            // Only consider if not already marked as non-linear
+            if (!witness_has_nonlinear.contains(w.value)) {
+                linear_only_witnesses.insert(w.value);
             }
+        }
+    }
 
+    // STEP 2: Single pass through expressions
+    // Solve linear-only witnesses and adjust q_c as needed
+    for (auto& expr : expressions) {
+        // Evaluate current value
+        fr value = bytes_to_fr(expr.q_c);
+
+        for (const auto& [coeff_bytes, w1, w2] : expr.mul_terms) {
+            fr coeff = bytes_to_fr(coeff_bytes);
+            value += coeff * witnesses[w1.value] * witnesses[w2.value];
+        }
+
+        for (const auto& [coeff_bytes, w] : expr.linear_combinations) {
+            fr coeff = bytes_to_fr(coeff_bytes);
+            value += coeff * witnesses[w.value];
+        }
+
+        // If not satisfied, try to solve
+        if (value != fr::zero()) {
+            bool solved = false;
+
+            // TIER 1: Try to find a linear-only witness in this expression that we can solve for
+            // First pass: check which linear-only witnesses are in this expression and sum their coefficients
+            std::map<uint32_t, fr> linear_witness_coeffs;
             for (const auto& [coeff_bytes, w] : expr.linear_combinations) {
-                fr coeff = bytes_to_fr(coeff_bytes);
-                value += coeff * witnesses[w.value];
+                if (linear_only_witnesses.contains(w.value)) {
+                    fr coeff = bytes_to_fr(coeff_bytes);
+                    linear_witness_coeffs[w.value] += coeff;
+                }
             }
 
-            // If not satisfied, try to solve
-            if (value != fr::zero()) {
-                // Find a linear term with non-zero coefficient
-                for (const auto& [coeff_bytes, w] : expr.linear_combinations) {
-                    fr coeff = bytes_to_fr(coeff_bytes);
-                    if (coeff != fr::zero()) {
-                        // Solve for this witness
-                        fr rest = bytes_to_fr(expr.q_c);
-                        for (const auto& [mc, w1, w2] : expr.mul_terms) {
-                            rest += bytes_to_fr(mc) * witnesses[w1.value] * witnesses[w2.value];
-                        }
-                        for (const auto& [lc, lw] : expr.linear_combinations) {
-                            if (lw.value != w.value) {
-                                rest += bytes_to_fr(lc) * witnesses[lw.value];
-                            }
-                        }
-                        witnesses[w.value] = -rest / coeff;
-                        changed = true;
-                        break;
+            // Try to solve using any linear-only witness with non-zero total coefficient
+            for (const auto& [w_idx, total_coeff] : linear_witness_coeffs) {
+                if (total_coeff != fr::zero()) {
+                    // Calculate value excluding this witness:
+                    // value = q_c + mul_terms + (coeff_of_other_witnesses * other_witnesses)
+                    fr value_without_witness = bytes_to_fr(expr.q_c);
+                    for (const auto& [coeff_bytes, w1, w2] : expr.mul_terms) {
+                        fr coeff = bytes_to_fr(coeff_bytes);
+                        value_without_witness += coeff * witnesses[w1.value] * witnesses[w2.value];
                     }
+                    for (const auto& [coeff_bytes, w] : expr.linear_combinations) {
+                        if (w.value != w_idx) {
+                            fr coeff = bytes_to_fr(coeff_bytes);
+                            value_without_witness += coeff * witnesses[w.value];
+                        }
+                    }
+
+                    // Solve: total_coeff * witness + value_without_witness = 0
+                    // So: witness = -value_without_witness / total_coeff
+                    witnesses[w_idx] = -value_without_witness / total_coeff;
+                    solved = true;
+                    break;
                 }
+            }
+
+            // TIER 2: If no linear-only witness found, adjust q_c to force equation to zero
+            if (!solved) {
+                // Set q_c = -value to make: q_c + value = 0
+                expr.q_c = fr_to_bytes(bytes_to_fr(expr.q_c)-value);
             }
         }
 
-        if (!changed)
-            break;
+        // Erase all witnesses in this expression's linear_combinations
+        // This prevents future expressions from modifying them and breaking this equation
+        // We have backups (original_witnesses) so this is safe
+        for (const auto& [coeff_bytes, w] : expr.linear_combinations) {
+            linear_only_witnesses.erase(w.value);
+        }
+// Evaluate current value
     }
 
     return true;
@@ -372,6 +420,16 @@ bool test_acir_circuit(const uint8_t* data, size_t size)
     if (size < 31)
         return false;
 
+    // SECURITY FUZZING: With 10% probability, disable sanitization to test raw data handling
+    // DISABLED BY DEFAULT - To enable, define ENABLE_UNSANITIZED_FUZZING at compile time
+    // This feature intentionally generates invalid data to test robustness against malformed input
+    bool disable_sanitization = false;
+#ifdef ENABLE_UNSANITIZED_FUZZING
+    if (size > 0) {
+        disable_sanitization = (data[0] % 10) == 0; // 10% probability
+    }
+#endif
+
     // Parse header with scaling based on input size
     // Small inputs (~64 bytes): 2-11 witnesses, 1-3 expressions
     // Medium inputs (~500 bytes): 2-50 witnesses, 1-10 expressions
@@ -444,8 +502,10 @@ bool test_acir_circuit(const uint8_t* data, size_t size)
         // Add mul terms using VM state for coefficients
         for (uint8_t m = 0; m < num_mul && remaining >= 3; ++m) {
             uint8_t coeff_reg = ptr[0] % INTERNAL_STATE_SIZE;
-            uint32_t w1_idx = ptr[1] % num_witnesses;
-            uint32_t w2_idx = ptr[2] % num_witnesses;
+            uint32_t w1_idx =
+                disable_sanitization ? *reinterpret_cast<const uint16_t*>(ptr + 1) : ptr[1] % num_witnesses;
+            uint32_t w2_idx =
+                disable_sanitization ? *reinterpret_cast<const uint16_t*>(ptr + 1) : ptr[2] % num_witnesses;
             ptr += 3;
             remaining -= 3;
 
@@ -462,7 +522,7 @@ bool test_acir_circuit(const uint8_t* data, size_t size)
 
         for (uint8_t l = 0; l < num_lin && remaining >= 2; ++l) {
             uint8_t coeff_reg = ptr[0] % INTERNAL_STATE_SIZE;
-            uint32_t w_idx = ptr[1] % num_witnesses;
+            uint32_t w_idx = disable_sanitization ? ptr[1] : ptr[1] % num_witnesses;
             ptr += 2;
             remaining -= 2;
 
@@ -510,43 +570,6 @@ bool test_acir_circuit(const uint8_t* data, size_t size)
     // Use only non-trivial expressions
     expressions = non_trivial_expressions;
 
-    // SECURITY: Filter out overly complex expressions to avoid edge cases in acir_to_constraint_buf
-    // Complex expressions with many terms can hit corner cases in gate generation
-    std::vector<Acir::Expression> filtered_expressions;
-    for (const auto& expr : expressions) {
-        // More conservative limits to avoid gate generation bugs:
-        // - Expressions with BOTH mul and linear terms can hit edge cases
-        // - Limit mul terms to 2 if there are also linear terms
-        // - Limit linear terms to 5 if there are also mul terms
-        size_t num_mul = expr.mul_terms.size();
-        size_t num_lin = expr.linear_combinations.size();
-
-        bool acceptable = true;
-        if (num_mul > 0 && num_lin > 0) {
-            // Mixed expression - be very conservative
-            if (num_mul > 2 || num_lin > 5) {
-                acceptable = false;
-            }
-        } else if (num_mul > 4) {
-            // Mul-only expression
-            acceptable = false;
-        } else if (num_lin > 10) {
-            // Linear-only expression
-            acceptable = false;
-        }
-
-        if (acceptable) {
-            filtered_expressions.push_back(expr);
-        }
-    }
-
-    // Skip if no valid expressions remain
-    if (filtered_expressions.empty()) {
-        return false;
-    }
-
-    expressions = filtered_expressions;
-
     // Initialize witnesses with VM-generated values (much better than random!)
     std::map<uint32_t, fr> solved_witnesses;
     for (uint32_t i = 0; i < num_witnesses; ++i) {
@@ -557,37 +580,13 @@ bool test_acir_circuit(const uint8_t* data, size_t size)
     // Now solve to satisfy constraints, using VM values as starting point
     solve_witnesses(expressions, num_witnesses, solved_witnesses);
 
-    // Validate that solver actually satisfied the constraints
-    bool witnesses_valid = validate_witnesses(expressions, solved_witnesses, true);
-    if (!witnesses_valid) {
-        // The solver couldn't find a solution - this can happen with quadratic or complex constraints
-        // that our simple iterative solver can't handle. Skip this test case.
-        // Note: This is NOT a bug - it's a known limitation of the simple solver.
-        return false;
-    }
-
-    // Additional check: Re-validate ALL expressions to catch any edge cases
-    // This double-checks before building the circuit
-    for (size_t i = 0; i < expressions.size(); ++i) {
-        const auto& expr = expressions[i];
-        fr value = bytes_to_fr(expr.q_c);
-
-        for (const auto& [coeff_bytes, w1, w2] : expr.mul_terms) {
-            fr coeff = bytes_to_fr(coeff_bytes);
-            value += coeff * solved_witnesses[w1.value] * solved_witnesses[w2.value];
-        }
-
-        for (const auto& [coeff_bytes, w] : expr.linear_combinations) {
-            fr coeff = bytes_to_fr(coeff_bytes);
-            value += coeff * solved_witnesses[w.value];
-        }
-
-        // If ANY expression is not satisfied, skip this test case
-        // This catches cases where solver failed or witnesses are invalid
-        if (value != fr::zero()) {
-            return false;
-        }
-    }
+    // Validate that solver satisfied the constraints
+    // bool witnesses_valid = validate_witnesses(expressions, solved_witnesses, true);
+    // if (!witnesses_valid) {
+    //     abort();
+    //     // The solver couldn't satisfy all constraints - skip this test case
+    //     return false;
+    // }
 
     // Deterministic witness corruption for soundness testing
     bool witnesses_corrupted = false;
@@ -603,7 +602,7 @@ bool test_acir_circuit(const uint8_t* data, size_t size)
         for (uint32_t i = 0; i < num_to_corrupt && i < num_witnesses; ++i) {
             size_t byte_idx = size - 3 - i;
             if (byte_idx >= 4) { // Adjusted for 4-byte header
-                uint32_t witness_to_corrupt = data[byte_idx] % num_witnesses;
+                uint32_t witness_to_corrupt = disable_sanitization ? data[byte_idx] : data[byte_idx] % num_witnesses;
 
                 // Skip if we've already corrupted this witness
                 if (already_corrupted.count(witness_to_corrupt) > 0) {
@@ -759,7 +758,8 @@ bool test_acir_circuit(const uint8_t* data, size_t size)
         // Add range constraints for random witnesses
         // Allow multiple constraints per witness to test the minimal_range optimization
         for (uint32_t i = 0; i < num_range_constraints; ++i) {
-            uint32_t witness_idx = (range_constraint_byte + i) % num_witnesses;
+            uint32_t witness_idx =
+                disable_sanitization ? range_constraint_byte + i : (range_constraint_byte + i) % num_witnesses;
 
             // Determine bit width based on fuzzer input
             // Mix of common bit widths and edge cases (capped at 254 bits for BN254 field)
