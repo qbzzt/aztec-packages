@@ -222,23 +222,38 @@ impl<Storage, CallSelf, EnqueueSelf, CallSelfStatic, EnqueueSelfStatic, CallInte
         call.view(self.context)
     }
 
-    pub fn enqueue<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>) {
+    pub fn enqueue<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>)
+    where
+        T: Deserialize,
+    {
         call.enqueue(self.context)
     }
 
-    pub fn enqueue_view<let M: u32, T>(&mut self, call: PublicStaticCallInterface<M, T>) {
+    pub fn enqueue_view<let M: u32, T>(&mut self, call: PublicStaticCallInterface<M, T>)
+    where
+        T: Deserialize,
+    {
         call.enqueue_view(self.context)
     }
 
-    pub fn enqueue_view_incognito<let M: u32, T>(&mut self, call: PublicStaticCallInterface<M, T>) {
+    pub fn enqueue_view_incognito<let M: u32, T>(&mut self, call: PublicStaticCallInterface<M, T>)
+    where
+        T: Deserialize,
+    {
         call.enqueue_view_incognito(self.context)
     }
 
-    pub fn set_as_teardown<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>) {
+    pub fn set_as_teardown<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>)
+    where
+        T: Deserialize,
+    {
         call.set_as_teardown(self.context)
     }
 
-    pub fn set_as_teardown_incognito<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>) {
+    pub fn set_as_teardown_incognito<let M: u32, T>(&mut self, call: PublicCallInterface<M, T>)
+    where
+        T: Deserialize,
+    {
         call.set_as_teardown_incognito(self.context)
     }
 }
@@ -325,14 +340,18 @@ impl<Storage, CallSelf, CallSelfStatic, CallInternal> ContractSelf<PublicContext
     where
         T: Deserialize,
     {
-        call.call(self.context)
+        unsafe {
+            call.call(self.context)
+        }
     }
 
     pub fn view<let M: u32, T>(self, call: PublicStaticCallInterface<M, T>) -> T
     where
         T: Deserialize,
     {
-        call.view(self.context)
+        unsafe {
+            call.view(self.context)
+        }
     }
 }
 
