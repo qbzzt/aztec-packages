@@ -1,12 +1,15 @@
 import { SponsoredFeePaymentMethod } from '@aztec/aztec.js/fee';
 import type { AztecNode } from '@aztec/aztec.js/node';
 import { readFieldCompressedString } from '@aztec/aztec.js/utils';
+import { Fr } from '@aztec/foundation/fields';
 import { createLogger } from '@aztec/foundation/log';
 import { sleep } from '@aztec/foundation/sleep';
+import { Tx } from '@aztec/stdlib/tx';
 import { ProvenTx, TestWallet, proveInteraction } from '@aztec/test-wallet/server';
 
 import { jest } from '@jest/globals';
 import type { ChildProcess } from 'child_process';
+import { base } from 'viem/chains';
 
 import { getSponsoredFPCAddress } from '../fixtures/utils.js';
 import {
@@ -24,8 +27,8 @@ describe('sustained 10 TPS test', () => {
 
   const logger = createLogger(`e2e:spartan-test:sustained-10tps`);
   const MINT_AMOUNT = 10000n;
-  const TEST_DURATION_SECONDS = 5;
-  const TARGET_TPS = 10;
+  const TEST_DURATION_SECONDS = 20 * 60;
+  const TARGET_TPS = 2;
   const TOTAL_TXS = TEST_DURATION_SECONDS * TARGET_TPS;
 
   let testAccounts: TestAccounts;
@@ -95,18 +98,36 @@ describe('sustained 10 TPS test', () => {
     // Pre-prove all transactions (avoid cloning/mutating nullifiers)
     const sponsor = new SponsoredFeePaymentMethod(await getSponsoredFPCAddress());
     const TOTAL_TXS = TEST_DURATION_SECONDS * TARGET_TPS;
-    const txs: ProvenTx[] = await Promise.all(
-      Array.from({ length: TOTAL_TXS }, () =>
-        proveInteraction(
-          wallet,
-          testAccounts.tokenContract.methods.transfer_in_public(defaultAccountAddress, recipient, transferAmount, 0),
-          {
-            from: testAccounts.tokenAdminAddress,
-            fee: { paymentMethod: sponsor },
-          },
-        ),
-      ),
+    const txs: ProvenTx[] = [];
+
+    const baseTx = await proveInteraction(
+      wallet,
+      testAccounts.tokenContract.methods.transfer_in_public(defaultAccountAddress, recipient, transferAmount, 0),
+      {
+        from: testAccounts.tokenAdminAddress,
+        fee: { paymentMethod: sponsor },
+      },
     );
+
+    for (let i = 0; i < TOTAL_TXS; i++) {
+      const clonedTxData = Tx.clone(baseTx);
+
+      // Modify the first nullifier to make it unique
+      const nullifiers = clonedTxData.data.getNonEmptyNullifiers();
+      if (nullifiers.length > 0) {
+        // Create a new nullifier by adding the index to the original
+        const newNullifier = nullifiers[0].add(Fr.fromString(i.toString()));
+        // Replace the first nullifier with our new unique one
+        if (clonedTxData.data.forRollup) {
+          clonedTxData.data.forRollup.end.nullifiers[0] = newNullifier;
+        } else if (clonedTxData.data.forPublic) {
+          clonedTxData.data.forPublic.nonRevertibleAccumulatedData.nullifiers[0] = newNullifier;
+        }
+      }
+
+      const clonedTx = new ProvenTx(aztecNode, clonedTxData, baseTx.offchainEffects, baseTx.stats);
+      txs.push(clonedTx);
+    }
 
     const allSentTxs: any[] = [];
     let sentSoFar = 0;

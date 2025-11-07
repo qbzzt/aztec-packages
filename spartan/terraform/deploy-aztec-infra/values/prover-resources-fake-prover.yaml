@@ -69,8 +69,8 @@ agent:
       HARDWARE_CONCURRENCY: "1"
     resources:
       requests:
-        memory: "0.5Gi"
-        cpu: "0.25"
+        memory: "2Gi"
+        cpu: "1.0"
 
   affinity:
     nodeAffinity:

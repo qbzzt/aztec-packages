@@ -168,6 +168,7 @@ locals {
         "validator.node.env.L1_PRIORITY_FEE_BUMP_PERCENTAGE"       = var.VALIDATOR_L1_PRIORITY_FEE_BUMP_PERCENTAGE
         "validator.node.env.L1_PRIORITY_FEE_RETRY_BUMP_PERCENTAGE" = var.VALIDATOR_L1_PRIORITY_FEE_RETRY_BUMP_PERCENTAGE
         "validator.node.env.BLOB_ALLOW_EMPTY_SOURCES"              = var.BLOB_ALLOW_EMPTY_SOURCES
+        "validator.node.env.P2P_MAX_TX_POOL_SIZE"                  = var.P2P_MAX_TX_POOL_SIZE
       }
       boot_node_host_path  = "validator.node.env.BOOT_NODE_HOST"
       bootstrap_nodes_path = "validator.node.env.BOOTSTRAP_NODES"
@@ -200,9 +201,11 @@ locals {
           "agent.node.env.PROVER_AGENT_POLL_INTERVAL_MS"        = var.PROVER_AGENT_POLL_INTERVAL_MS
           "agent.replicaCount"                                  = var.PROVER_REPLICAS
           "agent.node.env.BOOTSTRAP_NODES"                      = "asdf"
-          "agent.node.env.AGENT_COUNT"                          = var.PROVER_AGENTS_PER_PROVER
+          "agent.node.env.PROVER_AGENT_COUNT"                   = var.PROVER_AGENTS_PER_PROVER
+          "agent.node.env.PROVER_TEST_DELAY_TYPE"               = var.PROVER_TEST_DELAY_TYPE
           "node.node.env.L1_PRIORITY_FEE_BUMP_PERCENTAGE"       = var.PROVER_L1_PRIORITY_FEE_BUMP_PERCENTAGE
           "node.node.env.L1_PRIORITY_FEE_RETRY_BUMP_PERCENTAGE" = var.PROVER_L1_PRIORITY_FEE_RETRY_BUMP_PERCENTAGE
+          "node.node.env.P2P_MAX_TX_POOL_SIZE"                  = var.P2P_MAX_TX_POOL_SIZE
         },
         # Only set web3signerUrl if proof publishing is enabled
         !var.PROVER_NODE_DISABLE_PROOF_PUBLISH ? {
@@ -254,6 +257,31 @@ locals {
         "node.env.AWS_SECRET_ACCESS_KEY"              = var.R2_SECRET_ACCESS_KEY
         "node.env.P2P_TX_POOL_DELETE_TXS_AFTER_REORG" = var.P2P_TX_POOL_DELETE_TXS_AFTER_REORG
         "node.env.BLOB_ALLOW_EMPTY_SOURCES"           = var.BLOB_ALLOW_EMPTY_SOURCES
+        "node.env.P2P_MAX_TX_POOL_SIZE"               = var.P2P_MAX_TX_POOL_SIZE
+      }
+      boot_node_host_path  = "node.env.BOOT_NODE_HOST"
+      bootstrap_nodes_path = "node.env.BOOTSTRAP_NODES"
+      wait                 = true
+    }
+
+
+    full_node = {
+      name  = "${var.RELEASE_PREFIX}-full-node"
+      chart = "aztec-node"
+      values = [
+        "common.yaml",
+        "archive.yaml",
+        "full-node-resources-${var.FULL_NODE_RESOURCE_PROFILE}.yaml"
+      ]
+      custom_settings = {
+        "nodeType"                                    = "full-node"
+        "replicaCount"                                = var.FULL_NODE_REPLICAS
+        "node.proverRealProofs"                       = var.PROVER_REAL_PROOFS
+        "node.env.AWS_ACCESS_KEY_ID"                  = var.R2_ACCESS_KEY_ID
+        "node.env.AWS_SECRET_ACCESS_KEY"              = var.R2_SECRET_ACCESS_KEY
+        "node.env.P2P_TX_POOL_DELETE_TXS_AFTER_REORG" = var.P2P_TX_POOL_DELETE_TXS_AFTER_REORG
+        "node.env.BLOB_ALLOW_EMPTY_SOURCES"           = var.BLOB_ALLOW_EMPTY_SOURCES
+        "node.env.P2P_MAX_TX_POOL_SIZE"               = var.P2P_MAX_TX_POOL_SIZE
       }
       boot_node_host_path  = "node.env.BOOT_NODE_HOST"
       bootstrap_nodes_path = "node.env.BOOTSTRAP_NODES"
@@ -273,6 +301,7 @@ locals {
         "node.env.P2P_ARCHIVED_TX_LIMIT"              = "10000000"
         "node.env.P2P_TX_POOL_DELETE_TXS_AFTER_REORG" = var.P2P_TX_POOL_DELETE_TXS_AFTER_REORG
         "node.env.BLOB_ALLOW_EMPTY_SOURCES"           = var.BLOB_ALLOW_EMPTY_SOURCES
+        "node.env.P2P_MAX_TX_POOL_SIZE"               = var.P2P_MAX_TX_POOL_SIZE
       }
       boot_node_host_path  = "node.env.BOOT_NODE_HOST"
       bootstrap_nodes_path = "node.env.BOOTSTRAP_NODES"

@@ -21,6 +21,12 @@ variable "GCP_REGION" {
   type    = string
 }
 
+variable "FULL_NODE_RESOURCE_PROFILE" {
+  description = "Resource profile to use for the full node"
+  type        = string
+  default     = "prod"
+}
+
 variable "P2P_BOOTSTRAP_RESOURCE_PROFILE" {
   description = "Resource profile to use for the p2p bootstrap"
   type        = string
@@ -199,6 +205,13 @@ variable "PROVER_REPLICAS" {
   default     = 4
 }
 
+variable "PROVER_TEST_DELAY_TYPE" {
+  description = "The type of test delay to introduce in the prover (fixed, realistic)"
+  type        = string
+  default     = "fixed"
+
+}
+
 variable "PROVER_PUBLISHERS_PER_PROVER" {
   description = "Number of publisher keys per prover"
   type        = string
@@ -229,6 +242,12 @@ variable "PROVER_NODE_DISABLE_PROOF_PUBLISH" {
   description = "Whether to disable proof publishing from the prover node"
   type        = bool
   default     = false
+}
+
+variable "P2P_MAX_TX_POOL_SIZE" {
+  description = "Maximum size of the P2P transaction pool"
+  type        = string
+  default     = "100000000"
 }
 
 variable "OTEL_COLLECTOR_ENDPOINT" {
@@ -487,6 +506,12 @@ variable "PROVER_FAILED_PROOF_STORE" {
 
 variable "RPC_REPLICAS" {
   description = "The number of RPC replicas"
+  type        = string
+  default     = 1
+}
+
+variable "FULL_NODE_REPLICAS" {
+  description = "The number of full node replicas"
   type        = string
   default     = 1
 }
