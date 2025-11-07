@@ -9,6 +9,10 @@ use crate::macros::{
     utils::is_fn_view,
 };
 
+/// Generates the external function calls that are to be injected into the contract interface.
+///
+/// The contract interface enables you to form calls such as `Token::at(address).some_function(args)`.
+/// This function generates the implementation of `some_function` within the interface.
 pub(crate) comptime fn generate_external_function_calls(m: Module) -> Quoted {
     let private_functions = external_functions_registry::get_private_functions(m);
     let public_functions = external_functions_registry::get_public_functions(m);
@@ -44,6 +48,16 @@ pub(crate) comptime fn generate_external_function_calls(m: Module) -> Quoted {
     }
 }
 
+/// Generates helper structs for convenient self-invocation of contract functions:
+///
+/// - `CallSelf`: Call your own private or public functions, e.g.:
+///     `self.call_self.some_private_function(args)`
+/// - `CallSelfStatic`: Call your own view (static) functions, e.g.:
+///     `self.call_self_static.some_view_function(args)`
+/// - `EnqueueSelf`: Enqueue your own (non-view) public functions for deferred execution, e.g.:
+///     `self.enqueue_self.some_public_function(args)`
+/// - `EnqueueSelfStatic`: Enqueue your own view public functions, e.g.:
+///     `self.enqueue_self_static.some_view_function(args)`
 pub(crate) comptime fn generate_external_function_self_calls(m: Module) -> Quoted {
     let private_functions = external_functions_registry::get_private_functions(m);
     let public_functions = external_functions_registry::get_public_functions(m);
