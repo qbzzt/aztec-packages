@@ -294,9 +294,9 @@ int execute_msgpack_ipc_server(std::unique_ptr<ipc::IpcServer> server)
 #endif
 
 int execute_msgpack_run(const std::string& msgpack_input_file,
-                        int max_clients,
-                        size_t request_ring_size,
-                        size_t response_ring_size)
+                        [[maybe_unused]] int max_clients,
+                        [[maybe_unused]] size_t request_ring_size,
+                        [[maybe_unused]] size_t response_ring_size)
 {
 #ifndef __wasm__
     // Check if this is a shared memory path (ends with .shm)
@@ -317,10 +317,6 @@ int execute_msgpack_run(const std::string& msgpack_input_file,
         std::cerr << "Socket server at " << msgpack_input_file << ", max clients: " << max_clients << '\n';
         return execute_msgpack_ipc_server(std::move(server));
     }
-#else
-    (void)max_clients;
-    (void)request_ring_size;
-    (void)response_ring_size;
 #endif
 
     // Process msgpack API commands from stdin or file

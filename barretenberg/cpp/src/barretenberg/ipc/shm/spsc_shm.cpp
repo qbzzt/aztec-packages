@@ -309,7 +309,7 @@ void* SpscShm::peek(size_t* n)
         size_t grant = static_cast<size_t>((avail <= till_end) ? avail : till_end);
 
         // If we don't have enough bytes to even read a padding marker, treat as implicit padding
-        // This happens when the producer wrapped and left < 4 bytes at the end
+        // This happens when the producer wrapped back to the start of the ring buffer and left < 4 bytes at the end.
         if (grant < sizeof(uint32_t)) {
             // Skip to wrap point
             ctrl_->tail.store(tail + grant, std::memory_order_release);
