@@ -52,12 +52,9 @@ function release {
 }
 
 case "$cmd" in
-  ""|"full"|"fast")
-    ;;
-  test_cmds|test|release|build_dind_image|update_manifest)
-    $cmd
+  "")
     ;;
   *)
-    echo "Unknown command: $cmd"
-    exit 1
+    default_cmd_handler "$@"
+    ;;
 esac

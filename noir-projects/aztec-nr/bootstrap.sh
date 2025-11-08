@@ -112,20 +112,13 @@ function release_git_push {
 }
 
 case "$cmd" in
-  ""|"fast"|"full")
+  "")
     build
-    ;;
-  "ci")
-    build
-    test
-    ;;
-  test|test_cmds|format|release)
-    $cmd
     ;;
   "test-macro-compilation-failure")
     ./macro_compilation_failure_tests/assert_macro_compilation_failure.sh
     ;;
   *)
-    echo_stderr "Unknown command: $cmd"
-    exit 1
+    default_cmd_handler "$@"
+    ;;
 esac

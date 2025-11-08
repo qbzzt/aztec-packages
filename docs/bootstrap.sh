@@ -73,7 +73,7 @@ case "$cmd" in
     test
     check_references
     ;;
-  ""|"full"|"fast")
+  "")
     build_examples
     build_docs
     check_references
@@ -85,10 +85,7 @@ case "$cmd" in
     shift
     build_examples compile "$@"
     ;;
-  test|test_cmds)
-    $cmd
-    ;;
   *)
-    echo "Unknown command: $cmd"
-    exit 1
+    default_cmd_handler "$@"
+    ;;
 esac

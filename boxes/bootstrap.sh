@@ -112,20 +112,13 @@ case "$cmd" in
   "clean")
     git clean -fdx
     ;;
-  "ci")
+  "")
     build
-    test
-    ;;
-  ""|"fast"|"full")
-    build
-    ;;
-  test|test_cmds|release)
-    $cmd
     ;;
   "hash")
     echo $hash
     ;;
   *)
-    echo "Unknown command: $cmd"
-    exit 1
+    default_cmd_handler "$@"
+    ;;
 esac

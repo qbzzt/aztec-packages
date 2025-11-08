@@ -267,21 +267,14 @@ case "$cmd" in
   "clean-keys")
     rm -rf $key_dir
     ;;
-  "ci")
-    build
-    test
-    ;;
-  ""|"fast"|"full")
+  "")
     build
     ;;
   "compile")
     shift
     compile $1
     ;;
-  test|test_cmds|bench_cmds|format)
-    $cmd
-    ;;
   *)
-    echo_stderr "Unknown command: $cmd"
-    exit 1
+    default_cmd_handler "$@"
+    ;;
 esac

@@ -266,21 +266,14 @@ case "$cmd" in
       mv "${artifact}.tmp" "$artifact"
     done
     ;;
-  ""|"fast"|"full")
+  "")
     build
-    ;;
-  "ci")
-    build
-    test
     ;;
   "compile")
     shift
     VERBOSE=${VERBOSE:-1} build "$@"
     ;;
-  test|test_cmds|format)
-    $cmd
-    ;;
   *)
-    echo_stderr "Unknown command: $cmd"
-    exit 1
+    default_cmd_handler "$@"
+    ;;
 esac

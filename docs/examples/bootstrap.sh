@@ -35,7 +35,7 @@ case "$cmd" in
     "validate-ts")
         validate_ts_projects "$@"
         ;;
-    ""|"full"|"fast")
+    "")
         compile_contracts
         validate_ts_projects
         ;;

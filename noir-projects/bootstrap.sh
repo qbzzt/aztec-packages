@@ -43,16 +43,13 @@ function format {
 }
 
 case "$cmd" in
-  full|fast|ci|"")
+  "")
     build
-    ;;
-  test|test_cmds|format)
-    $cmd
     ;;
   "hash")
     hash_str $(../noir/bootstrap.sh hash) $(cache_content_hash .rebuild_patterns)
     ;;
   *)
-    echo_stderr "Unknown command: $cmd"
-    exit 1
+    default_cmd_handler "$@"
+    ;;
 esac

@@ -202,6 +202,11 @@ export -f build_preset build_native build_cross build_asan_fast build_wasm build
 function build {
   echo_header "bb cpp build"
 
+  if [ "$CI_FULL" -eq 1 ]; then
+    # Deletes all build dirs and build bb and wasms from scratch.
+    rm -rf build*
+  fi
+
   (cd src/barretenberg/nodejs_module && yarn --frozen-lockfile --prefer-offline)
 
   if semver check "$REF_NAME" && [[ "$(arch)" == "amd64" ]]; then
@@ -253,31 +258,24 @@ function test_cmds {
       done || (echo "Failed to list tests in $bin" && exit 1)
   done
 
-  if [ "$(arch)" == "amd64" ] && [ "$CI" -eq 1 ]; then
+  if [ "$CI_FULL" -eq 1 ]; then
     # We only want to sanity check that we haven't broken wasm ecc in merge queue.
     echo "$hash barretenberg/cpp/scripts/wasmtime.sh barretenberg/cpp/build-wasm-threads/bin/ecc_tests"
 
-    # only run ASAN tests if not building a release
-    if ! semver check "$REF_NAME"; then
-      # Mostly arbitrary set that touches lots of the code.
-      declare -A asan_tests=(
-        ["commitment_schemes_recursion_tests"]="IPARecursiveTests.AccumulationAndFullRecursiveVerifier"
-        ["chonk_tests"]="ChonkTests.Basic"
-        ["ultra_honk_tests"]="MegaHonkTests/0.Basic"
-        ["dsl_tests"]="AcirHonkRecursionConstraint/1.TestBasicDoubleHonkRecursionConstraints"
-      )
-      # If in amd64 CI, iterate asan_tests, creating a gtest invocation for each.
-      for bin_name in "${!asan_tests[@]}"; do
-        local filter=${asan_tests[$bin_name]}
-        local prefix="$hash:CPUS=4:MEM=8g"
-        echo -e "$prefix barretenberg/cpp/build-asan-fast/bin/$bin_name --gtest_filter=$filter"
-      done
-    fi
-  fi
-
-  # Run the SMT compatibility tests
-  if [ "$(arch)" == "amd64" ] &&  [ "$CI_FULL" -eq 1 ]; then
     local prefix="$hash:CPUS=4:MEM=8g"
+
+    # Mostly arbitrary set that touches lots of the code.
+    declare -A asan_tests=(
+      ["commitment_schemes_recursion_tests"]="IPARecursiveTests.AccumulationAndFullRecursiveVerifier"
+      ["chonk_tests"]="ChonkTests.Basic"
+      ["ultra_honk_tests"]="MegaHonkTests/0.Basic"
+      ["dsl_tests"]="AcirHonkRecursionConstraint/1.TestBasicDoubleHonkRecursionConstraints"
+    )
+    for bin_name in "${!asan_tests[@]}"; do
+      local filter=${asan_tests[$bin_name]}
+      echo -e "$prefix barretenberg/cpp/build-asan-fast/bin/$bin_name --gtest_filter=$filter"
+    done
+
     echo -e "$prefix barretenberg/cpp/build-smt/bin/smt_verification_tests"
   fi
 
@@ -336,12 +334,10 @@ case "$cmd" in
   "clean")
     git clean -fdx
     ;;
-  ""|"fast")
+  "")
     build
     ;;
   "full")
-    # Deletes all build dirs and build bb and wasms from scratch.
-    rm -rf build*
     build
     ;;
   "ci")
@@ -396,10 +392,7 @@ case "$cmd" in
   "hash")
     echo $hash
     ;;
-  test|test_cmds|bench|bench_cmds|build_preset|build_bench|release|build_native|build_cross|build_asan_fast|build_wasm|build_wasm_threads|build_gcc_syntax_check_only|build_fuzzing_syntax_check_only|build_smt_verification|inject_version)
-    $cmd "$@"
-    ;;
   *)
-    echo "Unknown command: $cmd"
-    exit 1
+    default_cmd_handler "$@"
+    ;;
 esac

@@ -254,32 +254,19 @@ case "$cmd" in
     # Double `f` needed to delete the nested git repository.
     git clean -ffdx
     ;;
-  "ci")
+  "")
     build
-    test
-    ;;
-  ""|"fast"|"full")
-    build
-    ;;
-  test_cmds|build_native|build_packages|format|test|release)
-    $cmd "$@"
     ;;
   "hash")
-    echo $NOIR_HASH
-    ;;
-  "hash-tests")
     echo $NOIR_HASH
     ;;
   "make-patch")
     scripts/sync.sh make-patch
     ;;
-  "bump-noir-repo-ref")
-    bump_noir_repo_ref $@
-    ;;
   "noir-sync")
     # Noop, we synced above.
     ;;
   *)
-    echo "Unknown command: $cmd"
-    exit 1
+    default_cmd_handler "$@"
+    ;;
 esac

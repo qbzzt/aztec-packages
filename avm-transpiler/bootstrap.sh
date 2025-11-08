@@ -80,7 +80,7 @@ case "$cmd" in
   "clean")
     git clean -fdx
     ;;
-  ""|"fast"|"full"|"ci")
+  "")
     build
     ;;
   build_native)

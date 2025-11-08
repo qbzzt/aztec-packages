@@ -90,10 +90,10 @@ function push {
 }
 
 case "$cmd" in
-  ""|"fast"|"full")
+  "")
     build
     ;;
   *)
-    $cmd "$@"
+    default_cmd_handler "$@"
     ;;
 esac

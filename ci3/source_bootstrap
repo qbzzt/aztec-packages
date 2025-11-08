@@ -5,15 +5,6 @@ source $ci3/source_refname
 source $ci3/source_redis
 
 case "${1:-}" in
-  "ci")
-    # Forces yarn immutability, jest snapshot immutability, etc.
-    export CI=1
-    # Being in CI implies use of cache, and enables denoising.
-    export DENOISE=${DENOISE:-1}
-    ;;
-  "full")
-    export NO_CACHE=${NO_CACHE:-1}
-    ;;
   release)
     if ! semver check $REF_NAME; then
       echo_stderr -e "${yellow}Not deploying $REF_NAME because it is not a release tag.${reset}"
@@ -23,3 +14,14 @@ case "${1:-}" in
     set -x
     ;;
 esac
+
+function default_cmd_handler {
+  local cmd=${1:-}
+  shift
+  if declare -f $cmd >/dev/null 2>&1; then
+    $cmd "$@"
+  else
+    echo "Unknown command: $cmd"
+    exit 1
+  fi
+}

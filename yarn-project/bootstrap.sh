@@ -249,11 +249,7 @@ case "$cmd" in
       echo "$files" | xargs rm -rf
     fi
     ;;
-  "ci")
-    build
-    test
-    ;;
-  ""|"fast")
+  "")
     build
     ;;
   "full")
@@ -295,14 +291,7 @@ case "$cmd" in
     trap cleanup_instrumentation EXIT
     eval "$cmd"
     ;;
-  lint|format)
-    $cmd "$@"
-    ;;
-  test|test_cmds|bench_cmds|hash|release|format)
-    $cmd
-    ;;
   *)
-    echo "Unknown command: $cmd"
-    exit 1
-  ;;
+    default_cmd_handler "$@"
+    ;;
 esac
