@@ -4,7 +4,7 @@
 
 #include "barretenberg/common/bb_bench.hpp"
 #include "barretenberg/common/log.hpp"
-#include "barretenberg/vm2/common/avm_inputs.hpp"
+#include "barretenberg/vm2/common/avm_io.hpp"
 #include "barretenberg/vm2/common/aztec_types.hpp"
 #include "barretenberg/vm2/common/field.hpp"
 
@@ -12,7 +12,10 @@
 #include "barretenberg/vm2/simulation/interfaces/debug_log.hpp"
 #include "barretenberg/vm2/simulation/lib/execution_id_manager.hpp"
 #include "barretenberg/vm2/simulation/lib/instruction_info.hpp"
+#include "barretenberg/vm2/simulation/lib/public_inputs_builder.hpp"
 #include "barretenberg/vm2/simulation/lib/raw_data_dbs.hpp"
+#include "barretenberg/vm2/simulation/lib/side_effect_tracker.hpp"
+#include "barretenberg/vm2/simulation/lib/side_effect_tracking_db.hpp"
 
 // Events.
 #include "barretenberg/vm2/simulation/events/address_derivation_event.hpp"
@@ -85,8 +88,7 @@ namespace bb::avm2 {
 
 using namespace bb::avm2::simulation;
 
-EventsContainer AvmSimulationHelper::simulate_for_witgen(const ExecutionHints& hints,
-                                                         std::vector<PublicDataWrite> public_data_writes)
+EventsContainer AvmSimulationHelper::simulate_for_witgen(const ExecutionHints& hints)
 {
     BB_BENCH_NAME("AvmSimulationHelper::simulate_for_witgen");
 
@@ -166,16 +168,22 @@ EventsContainer AvmSimulationHelper::simulate_for_witgen(const ExecutionHints& h
 
     ContractDB contract_db(raw_contract_db, address_derivation, class_id_derivation, hints.protocolContracts);
 
-    MerkleDB merkle_db(raw_merkle_db,
-                       public_data_tree_check,
-                       nullifier_tree_check,
-                       note_hash_tree_check,
-                       written_public_data_slots_tree_check,
-                       l1_to_l2_msg_tree_check);
-    merkle_db.add_checkpoint_listener(note_hash_tree_check);
-    merkle_db.add_checkpoint_listener(nullifier_tree_check);
-    merkle_db.add_checkpoint_listener(public_data_tree_check);
-    merkle_db.add_checkpoint_listener(emit_unencrypted_log_component);
+    MerkleDB base_merkle_db(raw_merkle_db,
+                            public_data_tree_check,
+                            nullifier_tree_check,
+                            note_hash_tree_check,
+                            written_public_data_slots_tree_check,
+                            l1_to_l2_msg_tree_check);
+    base_merkle_db.add_checkpoint_listener(note_hash_tree_check);
+    base_merkle_db.add_checkpoint_listener(nullifier_tree_check);
+    base_merkle_db.add_checkpoint_listener(public_data_tree_check);
+    // This one is only needed for events.
+    base_merkle_db.add_checkpoint_listener(emit_unencrypted_log_component);
+
+    // Side effect tracking is only strictly needed for logs and L2-to-L1 messages.
+    SideEffectTracker side_effect_tracker;
+    SideEffectTrackingDB merkle_db(
+        hints.tx.nonRevertibleAccumulatedData.nullifiers[0], base_merkle_db, side_effect_tracker);
 
     UpdateCheck update_check(
         poseidon2, range_check, greater_than, merkle_db, update_check_emitter, hints.globalVariables);
@@ -208,6 +216,7 @@ EventsContainer AvmSimulationHelper::simulate_for_witgen(const ExecutionHints& h
                                      merkle_db,
                                      written_public_data_slots_tree_check,
                                      retrieved_bytecodes_tree_check,
+                                     side_effect_tracker,
                                      hints.globalVariables);
     DataCopy data_copy(execution_id_manager, greater_than, data_copy_emitter);
 
@@ -239,16 +248,19 @@ EventsContainer AvmSimulationHelper::simulate_for_witgen(const ExecutionHints& h
 
     TxExecution tx_execution(execution,
                              context_provider,
+                             contract_db,
                              merkle_db,
                              written_public_data_slots_tree_check,
                              retrieved_bytecodes_tree_check,
+                             side_effect_tracker,
                              field_gt,
                              poseidon2,
                              tx_event_emitter);
 
     tx_execution.simulate(hints.tx);
 
-    public_data_tree_check.generate_ff_gt_events_for_squashing(public_data_writes);
+    public_data_tree_check.generate_ff_gt_events_for_squashing(
+        side_effect_tracker.get_side_effects().storage_writes_slots_by_insertion);
 
     return {
         tx_event_emitter.dump_events(),
@@ -294,11 +306,11 @@ EventsContainer AvmSimulationHelper::simulate_for_witgen(const ExecutionHints& h
     };
 }
 
-void AvmSimulationHelper::simulate_fast(ContractDBInterface& raw_contract_db,
-                                        LowLevelMerkleDBInterface& raw_merkle_db,
-                                        const Tx& tx,
-                                        const GlobalVariables& global_variables,
-                                        const ProtocolContracts& protocol_contracts)
+TxSimulationResult AvmSimulationHelper::simulate_fast(ContractDBInterface& raw_contract_db,
+                                                      LowLevelMerkleDBInterface& raw_merkle_db,
+                                                      const Tx& tx,
+                                                      const GlobalVariables& global_variables,
+                                                      const ProtocolContracts& protocol_contracts)
 {
     BB_BENCH_NAME("AvmSimulationHelper::simulate_fast");
 
@@ -306,6 +318,7 @@ void AvmSimulationHelper::simulate_fast(ContractDBInterface& raw_contract_db,
     bool user_requested_simulation = false;
     DebugLogLevel debug_log_level = DebugLogLevel::INFO;
     uint32_t max_debug_log_memory_reads = DEFAULT_MAX_DEBUG_LOG_MEMORY_READS;
+    FF prover_id = 1;
 
     NoopEventEmitter<ExecutionEvent> execution_emitter;
     NoopEventEmitter<DataCopyEvent> data_copy_emitter;
@@ -344,11 +357,12 @@ void AvmSimulationHelper::simulate_fast(ContractDBInterface& raw_contract_db,
 
     Ecc ecc(execution_id_manager, greater_than, to_radix, ecc_add_emitter, scalar_mul_emitter, ecc_add_memory_emitter);
 
+    SideEffectTracker side_effect_tracker;
     PureContractDB contract_db(raw_contract_db);
 
-    PureMerkleDB merkle_db(
+    PureMerkleDB base_merkle_db(
         tx.nonRevertibleAccumulatedData.nullifiers[0], raw_merkle_db, written_public_data_slots_tree_check);
-    merkle_db.add_checkpoint_listener(emit_unencrypted_log_component);
+    SideEffectTrackingDB merkle_db(tx.nonRevertibleAccumulatedData.nullifiers[0], base_merkle_db, side_effect_tracker);
 
     NoopUpdateCheck update_check;
 
@@ -370,6 +384,7 @@ void AvmSimulationHelper::simulate_fast(ContractDBInterface& raw_contract_db,
                                      merkle_db,
                                      written_public_data_slots_tree_check,
                                      retrieved_bytecodes_tree_check,
+                                     side_effect_tracker,
                                      global_variables);
     DataCopy data_copy(execution_id_manager, greater_than, data_copy_emitter);
 
@@ -406,21 +421,59 @@ void AvmSimulationHelper::simulate_fast(ContractDBInterface& raw_contract_db,
                               merkle_db);
     TxExecution tx_execution(execution,
                              context_provider,
+                             contract_db,
                              merkle_db,
                              written_public_data_slots_tree_check,
                              retrieved_bytecodes_tree_check,
+                             side_effect_tracker,
                              field_gt,
                              poseidon2,
                              tx_event_emitter);
 
-    tx_execution.simulate(tx);
+    PublicInputsBuilder public_inputs_builder;
+    public_inputs_builder.extract_inputs(tx, global_variables, protocol_contracts, prover_id, raw_merkle_db);
+
+    // This triggers all the work.
+    TxExecutionResult tx_execution_result = tx_execution.simulate(tx);
+
+    // TODO(fcarreiro): get these values from somewhere.
+    FF transaction_fee = 0;
+    public_inputs_builder.extract_outputs(raw_merkle_db,
+                                          tx_execution_result.gas_used.total_gas,
+                                          transaction_fee,
+                                          tx_execution_result.revert_code != RevertCode::OK,
+                                          side_effect_tracker.get_side_effects());
+
+    return {
+        // Simulation.
+        .gas_used = tx_execution_result.gas_used,
+        .revert_code = tx_execution_result.revert_code,
+        .app_logic_return_value = tx_execution_result.app_logic_return_value,
+        .logs = debug_log_component->dump_logs(),
+        // Proving request data.
+        .public_inputs = public_inputs_builder.build(),
+        .execution_hints = std::nullopt, // TODO: add execution hints, optionally.
+    };
 }
 
-void AvmSimulationHelper::simulate_fast_with_hinted_dbs(const ExecutionHints& hints)
+TxSimulationResult AvmSimulationHelper::simulate_fast_with_existing_ws(
+    simulation::ContractDBInterface& raw_contract_db,
+    const world_state::WorldStateRevision& world_state_revision,
+    world_state::WorldState& ws,
+    const Tx& tx,
+    const GlobalVariables& global_variables,
+    const ProtocolContracts& protocol_contracts)
+{
+    // Create PureRawMerkleDB with the provided WorldState instance
+    PureRawMerkleDB raw_merkle_db(world_state_revision, ws);
+    return simulate_fast(raw_contract_db, raw_merkle_db, tx, global_variables, protocol_contracts);
+}
+
+TxSimulationResult AvmSimulationHelper::simulate_fast_with_hinted_dbs(const ExecutionHints& hints)
 {
     HintedRawContractDB raw_contract_db(hints);
     HintedRawMerkleDB raw_merkle_db(hints);
-    simulate_fast(raw_contract_db, raw_merkle_db, hints.tx, hints.globalVariables, hints.protocolContracts);
+    return simulate_fast(raw_contract_db, raw_merkle_db, hints.tx, hints.globalVariables, hints.protocolContracts);
 }
 
 } // namespace bb::avm2

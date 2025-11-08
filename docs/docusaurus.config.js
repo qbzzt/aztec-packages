@@ -68,12 +68,22 @@ const config = {
           // Hide current version in Netlify production, show in dev and PR previews
           // Netlify sets CONTEXT
           includeCurrentVersion: process.env.CONTEXT !== "production",
-          // There should be 2 versions, nightly and stable
-          // The stable version is second in the list
-          lastVersion: versions[1],
+          // Testnet should be the default version
+          lastVersion: versions[2],
           versions: {
             [versions[0]]: {
-              ...(versions[0].includes("nightly") && { path: "nightly" }),
+              ...(versions[0].includes("nightly") && {
+                path: "nightly",
+                banner: "unreleased",
+              }),
+            },
+            [versions[1]]: {
+              label: "Devnet (v3.0.0-devnet.4)",
+              path: "devnet",
+              banner: "none",
+            },
+            "v2.1.2": {
+              label: "RC (v2.1.2)",
             },
             ...(process.env.CONTEXT !== "production" && {
               current: {

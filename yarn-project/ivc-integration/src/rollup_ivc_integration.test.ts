@@ -10,7 +10,7 @@ import { createLogger } from '@aztec/foundation/log';
 import { mapAvmCircuitPublicInputsToNoir } from '@aztec/noir-protocol-circuits-types/server';
 import { AvmTestContractArtifact } from '@aztec/noir-test-contracts.js/AvmTest';
 import { PublicTxSimulationTester, bulkTest } from '@aztec/simulator/public/fixtures';
-import { AvmCircuitPublicInputs } from '@aztec/stdlib/avm';
+import { AvmCircuitInputs, AvmCircuitPublicInputs } from '@aztec/stdlib/avm';
 import { RecursiveProof } from '@aztec/stdlib/proofs';
 import { VerificationKeyAsFields } from '@aztec/stdlib/vks';
 import { NativeWorldStateService } from '@aztec/world-state/native';
@@ -46,7 +46,7 @@ const logger = createLogger('ivc-integration:test:rollup-native');
 describe('Rollup IVC Integration', () => {
   let bbBinaryPath: string;
 
-  let ivcProof: RecursiveProof<typeof CHONK_PROOF_LENGTH>;
+  let chonkProof: RecursiveProof<typeof CHONK_PROOF_LENGTH>;
   let avmVK: VerificationKeyAsFields;
   let avmProof: Fr[];
   let avmPublicInputs: AvmCircuitPublicInputs;
@@ -72,7 +72,7 @@ describe('Rollup IVC Integration', () => {
 
     const backend = new AztecClientBackend(bytecodes, barretenberg);
     const [proofAsFields, , vkBytes] = await backend.prove(witnessStack, vks);
-    ivcProof = await proofBytesToRecursiveProof(proofAsFields, vkBytes);
+    chonkProof = await proofBytesToRecursiveProof(proofAsFields, vkBytes);
 
     // Create an AVM proof
     const avmWorkingDirectory = await getWorkingDirectory('bb-rollup-ivc-integration-avm-');
@@ -83,7 +83,7 @@ describe('Rollup IVC Integration', () => {
     await worldStateService.close();
     expect(avmSimulationResult.revertCode.isOK()).toBe(true);
 
-    const avmCircuitInputs = avmSimulationResult.avmProvingRequest.inputs;
+    const avmCircuitInputs = new AvmCircuitInputs(avmSimulationResult.hints!, avmSimulationResult.publicInputs);
     ({
       vk: avmVK,
       proof: avmProof,
@@ -104,7 +104,7 @@ describe('Rollup IVC Integration', () => {
     const privateBaseRollupWitnessResult = await witnessGenMockRollupTxBasePrivateCircuit({
       chonk_proof_data: {
         public_inputs: clientIVCPublicInputs,
-        proof: mapRecursiveProofToNoir(ivcProof),
+        proof: mapRecursiveProofToNoir(chonkProof),
         vk_data: mapVerificationKeyToNoir(ivcVk, CHONK_VK_LENGTH_IN_FIELDS),
       },
     });
@@ -127,7 +127,7 @@ describe('Rollup IVC Integration', () => {
     const publicBaseRollupWitnessResult = await witnessGenMockPublicBaseCircuit({
       chonk_proof_data: {
         public_inputs: clientIVCPublicInputs,
-        proof: mapRecursiveProofToNoir(ivcProof),
+        proof: mapRecursiveProofToNoir(chonkProof),
         vk_data: mapVerificationKeyToNoir(ivcVk, CHONK_VK_LENGTH_IN_FIELDS),
       },
       verification_key: mapVerificationKeyToNoir(avmVK, AVM_V2_VERIFICATION_KEY_LENGTH_IN_FIELDS_PADDED),
