@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -55,13 +56,10 @@ class IpcServer {
     /**
      * @brief Wait for data from any connected client
      *
-     * Spins for the specified time checking for data, then blocks (yields/sleeps) until data arrives.
-     * This is NOT a timeout - the function will block indefinitely after the spin phase.
-     *
-     * @param spin_ns Time to spin in nanoseconds before blocking (0 = block immediately)
-     * @return Client ID that has data available, or -1 on error
+     * @param timeout_ns Maximum time to wait in nanoseconds (0 = non-blocking poll)
+     * @return Client ID that has data available, or -1 on timeout/error
      */
-    virtual int wait_for_data(uint64_t spin_ns) = 0;
+    virtual int wait_for_data(uint64_t timeout_ns) = 0;
 
     /**
      * @brief Receive next message from a specific client
@@ -104,6 +102,19 @@ class IpcServer {
     virtual void close() = 0;
 
     /**
+     * @brief Request graceful shutdown.
+     *
+     * Sets shutdown flag and wakes all blocked threads. Safe to call from signal handlers.
+     * After this returns, the run() loop will exit on its next iteration.
+     * Call close() afterward to clean up resources.
+     */
+    virtual void request_shutdown()
+    {
+        shutdown_requested_.store(true, std::memory_order_release);
+        wakeup_all();
+    }
+
+    /**
      * @brief High-level request handler function type
      *
      * Takes client_id and request data, returns response data.
@@ -144,12 +155,13 @@ class IpcServer {
      */
     virtual void run(const Handler& handler)
     {
-        while (true) {
+        while (!shutdown_requested_.load(std::memory_order_acquire)) {
             // Try to accept new clients (non-blocking for socket servers)
             accept(0);
 
-            int client_id = wait_for_data(100000000); // Spin 100ms, then block
+            int client_id = wait_for_data(100000000);
             if (client_id < 0) {
+                // Timeout or error - check shutdown flag on next iteration
                 continue;
             }
 
@@ -187,6 +199,17 @@ class IpcServer {
                                                  size_t max_clients,
                                                  size_t request_ring_size = static_cast<size_t>(1024 * 1024),
                                                  size_t response_ring_size = static_cast<size_t>(1024 * 1024));
+
+  protected:
+    std::atomic<bool> shutdown_requested_{ false };
+
+    /**
+     * @brief Wake all blocked threads (for graceful shutdown)
+     *
+     * Wakes any threads blocked in wait_for_data() or other blocking operations.
+     * Used by signal handlers to trigger graceful shutdown without waiting for timeouts.
+     */
+    virtual void wakeup_all() {};
 };
 
 } // namespace bb::ipc

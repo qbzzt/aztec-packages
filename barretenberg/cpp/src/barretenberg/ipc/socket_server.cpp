@@ -26,7 +26,6 @@ SocketServer::SocketServer(std::string socket_path, int initial_max_clients)
     const size_t reserve_size = initial_max_clients > 0 ? static_cast<size_t>(initial_max_clients) : 10;
     client_fds_.reserve(reserve_size);
     recv_buffers_.reserve(reserve_size);
-    message_sizes_.reserve(reserve_size);
 }
 
 SocketServer::~SocketServer()
@@ -295,7 +294,6 @@ std::span<const uint8_t> SocketServer::receive(int client_id)
     // Ensure buffers are sized for this client
     if (client_idx >= recv_buffers_.size()) {
         recv_buffers_.resize(client_idx + 1);
-        message_sizes_.resize(client_idx + 1, 0);
     }
 
     // Read length prefix (4 bytes) atomically with data
@@ -330,8 +328,6 @@ std::span<const uint8_t> SocketServer::receive(int client_id)
         return {};
     }
 
-    // Store message size and return span (skip length prefix)
-    message_sizes_[client_idx] = msg_len;
     return std::span<const uint8_t>(recv_buffers_[client_idx].data() + sizeof(uint32_t), msg_len);
 }
 

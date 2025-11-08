@@ -147,26 +147,19 @@ static void setup_parent_death_monitoring()
 
 int execute_msgpack_ipc_server(std::unique_ptr<ipc::IpcServer> server)
 {
-
     // Store server pointer for signal handler cleanup (works for both socket and shared memory)
     // MUST be set before listen() since SIGBUS can occur during listen()
-    static ipc::IpcServer* global_server = nullptr;
-    global_server = server.get();
+    static ipc::IpcServer* global_server = server.get();
 
     // Register signal handlers for graceful cleanup
     // MUST be registered before listen() since SIGBUS can occur during initialization
     // SIGTERM: Sent by processes/test frameworks on shutdown
     // SIGINT: Sent by Ctrl+C
     auto graceful_shutdown_handler = [](int signal) {
-        std::cerr << "\nReceived signal " << signal << ", cleaning up..." << '\n';
-
-        // Clean up IPC resources (socket file or shared memory segments)
+        std::cerr << "\nReceived signal " << signal << ", shutting down gracefully..." << '\n';
         if (global_server) {
-            global_server->close();
-            std::cerr << "Cleaned up IPC resources" << '\n';
+            global_server->request_shutdown();
         }
-
-        std::exit(0);
     };
 
     // Register handlers for fatal memory errors (SIGBUS, SIGSEGV)
@@ -184,10 +177,9 @@ int execute_msgpack_ipc_server(std::unique_ptr<ipc::IpcServer> server)
         // Clean up IPC resources before exiting
         if (global_server) {
             global_server->close();
-            std::cerr << "Cleaned up IPC resources" << '\n';
         }
 
-        std::exit(1); // Exit with error code
+        std::exit(1);
     };
 
     (void)std::signal(SIGTERM, graceful_shutdown_handler);
@@ -206,7 +198,6 @@ int execute_msgpack_ipc_server(std::unique_ptr<ipc::IpcServer> server)
     std::cerr << "IPC server ready" << '\n';
 
     // Run server with msgpack handler
-    // Uses dynamic buffer allocation (starts at 1MB, grows up to 1GB as needed)
     server->run([](int client_id, std::span<const uint8_t> request) -> std::vector<uint8_t> {
         try {
             // Deserialize msgpack command
@@ -284,11 +275,7 @@ int execute_msgpack_ipc_server(std::unique_ptr<ipc::IpcServer> server)
         }
     });
 
-    // Clean up IPC resources on normal exit (e.g., after Shutdown command)
-    // The close() method handles cleanup for both socket and shared memory
     server->close();
-    std::cerr << "Cleaned up IPC resources" << '\n';
-
     return 0;
 }
 #endif

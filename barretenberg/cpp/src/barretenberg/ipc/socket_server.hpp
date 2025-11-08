@@ -31,7 +31,7 @@ class SocketServer : public IpcServer {
 
     bool listen() override;
     int accept(uint64_t timeout_ns) override;
-    int wait_for_data(uint64_t spin_ns) override;
+    int wait_for_data(uint64_t timeout_ns) override;
     std::span<const uint8_t> receive(int client_id) override;
     void release(int client_id, size_t message_size) override;
     bool send(int client_id, const void* data, size_t len) override;
@@ -53,7 +53,6 @@ class SocketServer : public IpcServer {
     std::vector<int> client_fds_;                    // client_id -> fd
     std::unordered_map<int, int> fd_to_client_id_;   // fd -> client_id (for fast lookup)
     std::vector<std::vector<uint8_t>> recv_buffers_; // client_id -> recv buffer
-    std::vector<size_t> message_sizes_;              // client_id -> current message size
     int num_clients_ = 0;
 };
 

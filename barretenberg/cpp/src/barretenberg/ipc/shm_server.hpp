@@ -108,14 +108,14 @@ class ShmServer : public IpcServer {
         }
     }
 
-    int wait_for_data(uint64_t spin_ns) override
+    int wait_for_data(uint64_t timeout_ns) override
     {
         if (!consumer_.has_value()) {
             return -1;
         }
 
-        // Pass spin time directly (don't convert ns to us - underlying API expects ns)
-        return consumer_->wait_for_data(static_cast<uint32_t>(spin_ns / 1000)); // Convert to microseconds for MPSC API
+        // Pass timeout directly in nanoseconds
+        return consumer_->wait_for_data(static_cast<uint32_t>(timeout_ns));
     }
 
     std::span<const uint8_t> receive(int client_id) override
@@ -214,6 +214,19 @@ class ShmServer : public IpcServer {
     }
 
     void close() override { close_internal(); }
+
+    void wakeup_all() override
+    {
+        // Wake consumer blocked in wait_for_data
+        if (consumer_.has_value()) {
+            consumer_->wakeup_all();
+        }
+
+        // Wake any clients blocked in response rings
+        for (auto& ring : response_rings_) {
+            ring.wakeup_all();
+        }
+    }
 
   private:
     void close_internal()
