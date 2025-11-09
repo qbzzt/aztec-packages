@@ -8,7 +8,7 @@ tags: [local_network, testnet]
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-Get started on your local environment using the local network. If you'd rather jump into testnet, read the [getting started on testnet guide](./getting_started_on_testnet.md).
+Get started on your local environment using a local network. If you'd rather jump into devnet, read the [getting started on devnet guide](./getting_started_on_devnet.md).
 
 The local network is a local development Aztec network running fully on your machine, and interacting with a development Ethereum node. You can develop and deploy on it just like on a testnet or mainnet (when the time comes). The local network makes it faster and easier to develop and test your Aztec applications.
 
@@ -17,7 +17,7 @@ What's included in the local network:
 - Local Ethereum network (Anvil)
 - Deployed Aztec protocol contracts (for L1 and L2)
 - A set of test accounts with some test tokens to pay fees
-- Development tools to compile contracts and interact with the network (`aztec-nargo` and `aztec-wallet`)
+- Development tools to compile contracts and interact with the network (`aztec` and `aztec-wallet`)
 
 All of this comes packaged in a Docker container to make it easy to install and run.
 
@@ -48,9 +48,7 @@ bash -i <(curl -s https://install.aztec.network)
 
 This will install the following tools:
 
-- **aztec** - launches various infrastructure subsystems (full local network, sequencer, prover, pxe, etc) and provides utility commands to interact with the network
-- **aztec-nargo** - aztec's build of nargo, the noir compiler toolchain.
-- **aztec-postprocess-contract** - postprocessing tool for Aztec contracts (transpilation and VK generation).
+- **aztec** - compiles and tests aztec contracts and launches various infrastructure subsystems (full local network, sequencer, prover, pxe, etc) and provides utility commands to interact with the network
 - **aztec-up** - a tool to upgrade the aztec toolchain to the latest, or specific versions.
 - **aztec-wallet** - a tool for interacting with the aztec network
 
@@ -112,7 +110,7 @@ import { CLI_Add_Test_Accounts } from '@site/src/components/Snippets/general_sni
 
 <CLI_Add_Test_Accounts />
 
-To add the test accounts in the PXE, run this in another terminal:
+To add the test accounts in the wallet, run this in another terminal:
 
 ```bash
 aztec-wallet import-test-accounts

@@ -1,7 +1,7 @@
 ---
 title: Run Aztec in a Local Network
 sidebar_position: 0
-tags: [local_network, PXE]
+tags: [local_network, wallet]
 description: Information about running the Aztec local network development environment.
 ---
 
@@ -13,22 +13,15 @@ description: Information about running the Aztec local network development envir
 On this page you will find
 
 - [Understanding versions](#versions)
-- [How to automatically update Aztec local network and aztec-nargo](#updating)
+- [How to automatically update Aztec's local network and aztec command](#updating)
 - [How to update Aztec.nr packages](#updating-aztecnr-packages)
 - [How to update Aztec.js packages](#updating-aztecjs-packages)
 - [How to enable client-side proving](#local-network-pxe-proving)
-- [How to run multiple PXEs](#running-multiple-pxes-in-the-local-network)
 
 ## Versions
 
 Aztec tools (local network, nargo), dependencies (Aztec.nr), and sample contracts are constantly being improved.
 When developing and referring to example .nr files/snippets, it is helpful to verify the versions of different components (below), and if required keep them in lock-step by [updating](#updating).
-
-### Checking tool versions
-
-:::note
-The `aztec-nargo` versions follow `nargo` versions, which is different to the Aztec tool versions.
-:::
 
 ### Dependency versions
 
@@ -59,13 +52,13 @@ diff ~/nargo/github.com/AztecProtocol/v0.23.0/yarn-project/noir-contracts/contra
 
 :::
 
-### Language server version (aztec-nargo)
+### Language server version
 
-The [Noir LSP](../aztec-nr/installation.md) uses your local version of `aztec-nargo`, and thus also `aztec-nargo compile`.
-The path of the former (once installed) can be seen by hovering over "Nargo" in the bottom status bar of VS Code, and the latter via the `which aztec-nargo` command.
+The [Noir LSP](../aztec-nr/installation.md) uses your local version of `aztec`, and thus also `aztec compile`.
+The path of the former (once installed) can be seen by hovering over "Nargo" in the bottom status bar of VS Code, and the latter via the `which aztec` command.
 
 :::caution
-For Aztec contract files, this should be `aztec-nargo` and for noir-only files this should be `nargo`. Mismatching tools and file types will generate misleading syntax and compiler errors.
+For Aztec contract files, this should be `aztec` and for noir-only files this should be `nargo`. Mismatching tools and file types will generate misleading syntax and compiler errors.
 :::
 
 This can present confusion when opening older contracts (and dependencies) written in older version of noir, such as:
@@ -78,7 +71,7 @@ This can present confusion when opening older contracts (and dependencies) writt
 
 ### Steps to keep up to date
 
-1. Update the Aztec local network to the latest version (includes `aztec-nargo`, pxe, etc):
+1. Update the Aztec local network to the latest version (includes `aztec` command, pxe, etc):
 
 ```shell
 aztec-up
@@ -111,9 +104,8 @@ Follow [updating Aztec.nr packages](#updating-aztecnr-packages) and [updating Ja
 
 There are four components whose versions need to be kept compatible:
 
-1. Aztec Local Network
-2. aztec-nargo
-3. `Aztec.nr`, the Noir framework for writing Aztec contracts
+1. Aztec local network (includes the `aztec` command)
+2. `Aztec.nr`, the Noir framework for writing Aztec contracts
 
 First three are packaged together in docker and are kept compatible by running `aztec-up`.
 But you need to update your Aztec.nr version manually or using `aztec update`.
@@ -144,8 +136,7 @@ Go to the contract directory and try compiling it to verify that the update was 
 
 ```shell
 cd /your/contract/directory
-aztec-nargo compile        # generate contract artifacts
-aztec-postprocess-contract # transpile contract and generate verification keys
+aztec compile        # compiles the contract
 ```
 
 If the dependencies fail to resolve ensure that the tag matches a tag in the [aztec-packages repository (GitHub link)](https://github.com/AztecProtocol/aztec-packages/tags).

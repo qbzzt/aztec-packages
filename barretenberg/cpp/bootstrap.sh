@@ -9,7 +9,7 @@ if [ "${AVM:-1}" -eq "1" ]; then
 else
   export native_preset=${NATIVE_PRESET:-clang20-no-avm}
 fi
-export hash=$(cache_content_hash .rebuild_patterns)
+export hash=$(hash_str $(../../avm-transpiler/bootstrap.sh hash) $(cache_content_hash .rebuild_patterns))
 
 # Mix whether we're building multi-arch or single-arch into the hash
 if semver check "$REF_NAME"; then
@@ -305,8 +305,10 @@ function build_bench {
 function bench_cmds {
   prefix="$hash:CPUS=8"
   echo "$prefix barretenberg/cpp/scripts/run_bench.sh native bb-micro-bench/native/ultra_honk build/bin/ultra_honk_bench construct_proof_ultrahonk_power_of_2/20$"
+  echo "$prefix barretenberg/cpp/scripts/run_bench.sh native bb-micro-bench/native/ultra_honk_zk build/bin/ultra_honk_bench construct_proof_ultrahonk_zk_power_of_2/20$"
   echo "$prefix barretenberg/cpp/scripts/run_bench.sh native bb-micro-bench/native/chonk build/bin/chonk_bench ChonkBench/Full/5$"
   echo "$prefix barretenberg/cpp/scripts/run_bench.sh wasm bb-micro-bench/wasm/ultra_honk build-wasm-threads/bin/ultra_honk_bench construct_proof_ultrahonk_power_of_2/20$"
+  echo "$prefix barretenberg/cpp/scripts/run_bench.sh wasm bb-micro-bench/wasm/ultra_honk_zk build-wasm-threads/bin/ultra_honk_bench construct_proof_ultrahonk_zk_power_of_2/20$"
   echo "$prefix barretenberg/cpp/scripts/run_bench.sh wasm bb-micro-bench/wasm/chonk build-wasm-threads/bin/chonk_bench ChonkBench/Full/5$"
   prefix="$hash:CPUS=1"
   echo "$prefix barretenberg/cpp/scripts/run_bench.sh native bb-micro-bench/native/chonk_verify build/bin/chonk_bench VerificationOnly$"
